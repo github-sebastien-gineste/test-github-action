@@ -6,20 +6,18 @@ on:
       - opened
       - edited
 
-
-
 jobs:
   add_comment:
-    permissions: write-all
+    permissions:
+      issues: write
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
     - name: Ajouter un commentaire
       uses: actions/github-script@v6
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with: 
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
             const script = require('./.github/js/index.js')
             await script({github, context, core})
