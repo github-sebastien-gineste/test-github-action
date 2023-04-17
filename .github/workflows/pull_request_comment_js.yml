@@ -5,18 +5,20 @@ on:
     types: 
       - opened
       - edited
-      
+
 jobs:
   add_comment:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
-      uses: actions/checkout@v2
-    - name: Installer les dépendances
-      run: cd ./.github/js && npm install
+      uses: actions/checkout@v3
     - name: Ajouter un commentaire
-      uses: actions/github-script@v4
+      uses: actions/github-script@v6
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: cd ./.github/js && node index.js
+      with: 
+        script: |
+            const script = require('./.github/js/index.js')
+            await script({github, context, core})
+        
         
