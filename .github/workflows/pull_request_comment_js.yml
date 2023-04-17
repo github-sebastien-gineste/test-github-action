@@ -18,7 +18,7 @@ jobs:
     - name: Ajouter un commentaire
       uses: actions/github-script@v6
       with: 
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
             const script = require('./.github/js/index.js')
             await script({github, context, core})
