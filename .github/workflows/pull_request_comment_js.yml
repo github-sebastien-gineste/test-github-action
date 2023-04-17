@@ -6,11 +6,10 @@ on:
       - opened
       - edited
 
-permissions: read-all
-
 jobs:
   add_comment:
     permissions:
+      contents: read
       issues: write
     runs-on: ubuntu-latest
     steps:
