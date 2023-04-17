@@ -6,6 +6,8 @@ on:
       - opened
       - edited
 
+permissions: read-all|write-all
+
 jobs:
   add_comment:
     runs-on: ubuntu-latest
