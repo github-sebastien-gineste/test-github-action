@@ -11,20 +11,10 @@ jobs:
     - name: Checkout le code
       uses: actions/checkout@v2
     - name: Installer les dépendances
-      run: npm install
+      run: cd ./.github/js && npm install
     - name: Ajouter un commentaire
       uses: actions/github-script@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        script: |
-          const { owner, repo } = context.repo;
-          const number = context.payload.pull_request.number;
-          const message = "coucou";
-          const octokit = new github.GitHub(process.env.GITHUB_TOKEN);
-          await octokit.issues.createComment({
-            owner,
-            repo,
-            issue_number: number,
-            body: message
-          });
+      run: cd ./.github/js && node index.js
+        
