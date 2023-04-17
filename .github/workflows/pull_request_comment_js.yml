@@ -6,12 +6,13 @@ on:
       - opened
       - edited
 
+permissions:
+  contents: 'read'
+  issues: 'write'
+  id-token: 'write'
+
 jobs:
   add_comment:
-    permissions:
-      contents: read
-      issues: write
-      id-token: write
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
