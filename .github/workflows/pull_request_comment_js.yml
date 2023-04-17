@@ -9,6 +9,7 @@ on:
 jobs:
   add_comment:
     permissions:
+      read-all
       issues: write
     runs-on: ubuntu-latest
     steps:
