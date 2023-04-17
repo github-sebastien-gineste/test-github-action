@@ -4,7 +4,8 @@ on:
   pull_request:
     types: 
       - opened
-
+      - edited
+      
 jobs:
   add_comment:
     runs-on: ubuntu-latest
