@@ -22,7 +22,7 @@ jobs:
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/go/ go run hello.go 
+      run: cd ./.github/go/ && go run hello.go 
 
 
         
