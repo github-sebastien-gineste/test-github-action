@@ -1,0 +1,29 @@
+name: Ajouter un commentaire à la Pull Request en Go
+
+on:
+  pull_request:
+    types: 
+      - opened
+      - edited
+
+jobs:
+  add_comment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout le code
+      uses: actions/checkout@v3
+    - name: Ajouter un commentaire en GO
+      uses: actions/setup-go@v4
+      with:
+         go-version: 'stable'
+    - name: "go run"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
+      run: cd ./.github/go/ && go get && go run hello.go 
+
+
+        
+        

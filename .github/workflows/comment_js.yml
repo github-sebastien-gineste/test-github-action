@@ -1,4 +1,4 @@
-name: Ajouter un commentaire à la Pull Request
+name: Ajouter un commentaire à la Pull Request en JS
 
 on:
   pull_request:
@@ -25,17 +25,6 @@ jobs:
         script: |
             const script = require('./.github/js/index.js')
             await script({github, context, core})
-    - name: Ajouter un commentaire en GO
-      uses: actions/setup-go@v4
-      with:
-         go-version: 'stable'
-    - name: "go run"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PR_NUMBER: ${{ github.event.number }}
-        OWNER: ${{ github.event.repository.owner.login }}
-        REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/go/ && go get && go run hello.go 
 
 
         
