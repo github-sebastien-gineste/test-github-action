@@ -1,6 +1,7 @@
 name: Ajouter un commentaire à la Pull Request
 
 on:
+  push
   pull_request:
     types: 
       - opened
