@@ -31,8 +31,8 @@ jobs:
          go-version: 'stable'
     - name: install dependacy
       run: |
-        go get -v github.com/google/go-github/github
-        go get -v golang.org/x/oauth2
+        go install github.com/google/go-github/github
+        go install golang.org/x/oauth2
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
