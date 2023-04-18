@@ -1,5 +1,5 @@
 module.exports = async ({github, context, core})=> {
-    const message = "coucou";
+    const message = "coucou from JS";
  
     await github.rest.issues.createComment({
         issue_number: context.issue.number,
