@@ -1,4 +1,4 @@
-module.exports = async ({github, context, core})=> {
+export default async ({github, context, core})=> {
     const message = "coucou";
 
     await github.rest.issues.createComment({
