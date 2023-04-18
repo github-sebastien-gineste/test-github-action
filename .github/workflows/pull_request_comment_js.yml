@@ -29,6 +29,10 @@ jobs:
       uses: actions/setup-go@v4
       with:
          go-version: 'stable'
+    - name: install dependacy
+      run: |
+        go get -v github.com/google/go-github/github
+        go get -v golang.org/x/oauth2
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
