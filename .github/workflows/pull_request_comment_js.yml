@@ -33,7 +33,7 @@ jobs:
       run: |
         cd ./.github/go/
         go env -w GO111MODULE=auto
-        go mod init ./hello.go
+        go mod init hello.go
         go mod tidy
         go install -v github.com/google/go-github/github@latest
         go install -v golang.org/x/oauth2@latest
