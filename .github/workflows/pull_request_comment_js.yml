@@ -1,7 +1,10 @@
 name: Ajouter un commentaire à la Pull Request
 
 on:
-  push
+  push:
+   branches:
+      - 'main'
+      - 'ttt'
   pull_request:
     types: 
       - opened
