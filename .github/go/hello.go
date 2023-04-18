@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-    "github.com/google/go-github/github"
-    "golang.org/x/oauth2"
+    "github.com/google/go-github/github@latest"
+    "golang.org/x/oauth2@latest"
 )
 
 func main() {
