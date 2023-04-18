@@ -33,15 +33,13 @@ jobs:
       run: |
         cd ./.github/go/
         go env -w GO111MODULE=auto
-        go get -u github.com/google/go-github/github@latest
-        go get -u golang.org/x/oauth2@latest
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: go run ./.github/go/hello.go
+      run: cd ./.github/go/ && go get && go run
 
 
         
