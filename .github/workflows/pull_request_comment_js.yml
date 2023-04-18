@@ -2,29 +2,41 @@ name: Ajouter un commentaire à la Pull Request
 
 on:
   pull_request:
-    types: [opened]
+    types: 
+      - opened
+      - edited
+
+permissions:
+  contents: 'read'
+  issues: 'write'
+  id-token: 'write'
+  pull-requests: 'write'
 
 jobs:
   add_comment:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
-      uses: actions/checkout@v2
-    - name: Installer les dépendances
-      run: npm install
-    - name: Ajouter un commentaire
-      uses: actions/github-script@v4
+      uses: actions/checkout@v3
+    - name: Ajouter un commentaire en JS
+      uses: actions/github-script@v6
+      with: 
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+            const script = require('./.github/js/index.js')
+            await script({github, context, core})
+    - name: Ajouter un commentaire en GO
+      uses: actions/setup-go@v4
+      with:
+         go-version: 'stable'
+    - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        script: |
-          const { owner, repo } = context.repo;
-          const number = context.payload.pull_request.number;
-          const message = "coucou";
-          const octokit = new github.GitHub(process.env.GITHUB_TOKEN);
-          await octokit.issues.createComment({
-            owner,
-            repo,
-            issue_number: number,
-            body: message
-          });
+        PR_NUMBER: ${{ github.event.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
+      run: cd ./.github/go/ && go get && go run hello.go
+
+
+        
+        
