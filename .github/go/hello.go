@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"context"
+	"strconv"
 
     "github.com/google/go-github/github"
     "golang.org/x/oauth2"
@@ -21,7 +22,8 @@ func main() {
     client := github.NewClient(tc)
 
 	 // Récupérer les informations de la Pull Request
-	 prNumber := os.Getenv("PR_NUMBER")
+	 prNumberStr := os.Getenv("PR_NUMBER")
+	 prNumber, err := strconv.Atoi(prNumberStr)
 	 owner := os.Getenv("OWNER")
 	 repo := os.Getenv("REPO")
 	 pr, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber)
