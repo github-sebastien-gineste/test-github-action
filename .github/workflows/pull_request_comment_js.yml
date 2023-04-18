@@ -30,6 +30,11 @@ jobs:
       with:
          go-version: 'stable'
     - name: "go run"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
       run: go run ./.github/go/hello.go
 
 
