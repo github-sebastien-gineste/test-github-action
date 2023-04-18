@@ -18,12 +18,19 @@ jobs:
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
-    - name: Ajouter un commentaire
+    - name: Ajouter un commentaire en JS
       uses: actions/github-script@v6
       with: 
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
             const script = require('./.github/js/index.js')
             await script({github, context, core})
+    - name: Ajouter un commentaire en GO
+      uses: actions/setup-go@v4
+      with:
+         go-version: 'stable'
+      run: go run ./.github/go/hello.go
+
+
         
         
