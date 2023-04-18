@@ -29,17 +29,13 @@ jobs:
       uses: actions/setup-go@v4
       with:
          go-version: 'stable'
-    - name: install dependacy
-      run: |
-        cd ./.github/go/
-        go env -w GO111MODULE=auto
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/go/ && go get && go run
+      run: cd ./.github/go/ && go get && go run hello.go
 
 
         
