@@ -9,5 +9,6 @@ func main() {
 
 	output := fmt.Sprintf("Hello %s", myInput)
 
-	fmt.Println(fmt.Sprintf(`::set-output name=myOutput::%s`, output))
+	fmt.Println(fmt.Sprintf(`"{myOutput}={%s}" >> $GITHUB_OUTPUT`, output))
 }
+
