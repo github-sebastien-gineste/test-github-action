@@ -21,9 +21,9 @@ jobs:
     - name: Install dependencies
       run: cd ./.github/ts/ && npm ci
     - name: build
-      runs: cd ./.github/ts/ && npm run build
+      run: cd ./.github/ts/ && npm run build
     - name: run action
-      runs: node ./.github/ts/dist/src/index.js
+      run: node ./.github/ts/dist/src/index.js
 
         
         
