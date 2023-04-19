@@ -1,17 +1,24 @@
-import { context, getOctokit } from "@actions/github";
+// --------  diff --------
+import { context as ctx, getOctokit } from "@actions/github";
+import { getInput } from "@actions/core"; // core 
+
+const githubToken = process.env.GITHUB_TOKEN!;
+const github = getOctokit(githubToken);
+const context = ctx;
+github_action()
+// --------  diff --------
 
 async function github_action() {
-  const githubToken = process.env.GITHUB_TOKEN;
-  if(!githubToken) {return}
 
-  const pullRequestNumber : number = context.payload.pull_request? context.payload.pull_request.number : -1;
+    // ----- Same -----  
+    const message = "coucou from TS";
 
-  const octokit = getOctokit(githubToken);
-  await octokit.rest.issues.createComment({
-      ...context.repo,
-      issue_number: pullRequestNumber,
-      body: "Coucou from TS"
+    await github.rest.issues.createComment({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        issue_number: context.issue.number,
+        body: message
     });
+    // ----- Same -----  
 }
 
-github_action()
