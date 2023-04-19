@@ -18,11 +18,13 @@ jobs:
         node-version: 16.x
         cache: npm
         cache-dependency-path: .github/ts/package-lock.json
-    - name: Install dependencies
+    - name: Install dependencies 
       run: cd ./.github/ts/ && npm ci
     - name: build
       run: cd ./.github/ts/ && npm run build
     - name: run action
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: node ./.github/ts/dist/src/index.js
 
         
