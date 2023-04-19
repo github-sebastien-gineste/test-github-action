@@ -34,7 +34,7 @@ func main() {
 
 	// Ajouter un commentaire à la Pull Request
 	comment := &github.IssueComment{
-		Body: github.String("Coucou"),
+		Body: github.String("Coucou from Go"),
     }
     _, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
     if err != nil {
