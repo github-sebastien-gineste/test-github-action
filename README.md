@@ -7,7 +7,7 @@ So that it represents your changes as closely as possible and facilitates review
 
 _Please describe your changes in detail and provide related JIRA ticket(s)._
 
-# Reminders
+# Reminderscc
 
 - 👷‍♂️ **Open your PR as a draft** to not notify the platform team until the PR is ready
 - **Don't ping the platform team** for a code review on [`#innov-platform-eng`](https://teads.slack.com/archives/CD3GJ2MU5), unless:
