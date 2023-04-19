@@ -13,7 +13,7 @@ permissions:
   pull-requests: 'write'
 
 jobs:
-  add_comment:
+  add_comment_js:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
