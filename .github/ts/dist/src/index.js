@@ -13,8 +13,8 @@ async function github_action() {
         console.log(file.filename);
         message += ` - ${file.filename}  \n`;
     });
-    const prBody = (0, core_1.getInput)('pr_body');
-    message += "Body : " + prBody;
+    (0, core_1.notice)('Something happened that you might want to know about.');
+    message += "Body : " + process.env.PR_BODY;
     await github.rest.issues.createComment({
         owner: context.repo.owner,
         repo: context.repo.repo,

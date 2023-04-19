@@ -1,5 +1,5 @@
 import { context as ctx, getOctokit } from "@actions/github";
-import { getInput } from '@actions/core';
+import { getInput, notice } from '@actions/core';
 
 const githubToken = process.env.GITHUB_TOKEN!;
 const github = getOctokit(githubToken);
@@ -17,8 +17,9 @@ async function github_action() {
         message += ` - ${file.filename}  \n`;
     });
 
-    const prBody = getInput('pr_body');
-    message += "Body : " + prBody;
+    notice('Something happened that you might want to know about.')
+
+    message += "Body : " + process.env.PR_BODY;
 
 
     await github.rest.issues.createComment({
