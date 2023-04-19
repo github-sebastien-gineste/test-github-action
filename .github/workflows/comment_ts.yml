@@ -1,0 +1,27 @@
+name: Ajouter un commentaire à la Pull Request en TS
+
+on:
+  pull_request:
+    types: 
+      - opened
+      - edited
+
+permissions:
+  contents: 'read'
+  issues: 'write'
+  id-token: 'write'
+  pull-requests: 'write'
+
+jobs:
+  add_comment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout le code
+      uses: actions/checkout@v3
+    - name: Ajouter un commentaire en TS
+      runs:
+        using: 'node16'
+        main: '.github/ts/dist/src/index.js'
+
+        
+        

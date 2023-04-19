@@ -1,2 +1,3 @@
-.github/js/node_modules
-.github/js/package-lock.json
+.github/ts/node_modules
+.github/ts/package-lock.json
+.github/ts/dist
