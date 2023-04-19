@@ -1,26 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-// --------  diff --------
 const github_1 = require("@actions/github");
+const core_1 = require("@actions/core");
 const githubToken = process.env.GITHUB_TOKEN;
 const github = (0, github_1.getOctokit)(githubToken);
 const context = github_1.context;
 github_action();
-// --------  diff --------
 async function github_action() {
-    // ----- Same -----  
-    const message = "coucou from TS";
+    let message = "coucou from TS  \n\n";
+    const files_names = await getDiff();
+    files_names.map((file) => {
+        console.log(file.filename);
+        message += ` - ${file.filename}  \n`;
+    });
+    const prBody = (0, core_1.getInput)('pr_body');
+    message += "Body : " + prBody;
     await github.rest.issues.createComment({
         owner: context.repo.owner,
         repo: context.repo.repo,
         issue_number: context.issue.number,
         body: message
     });
-    const files_names = await getDiff();
-    files_names.map((file) => {
-        console.log(file.filename);
-    });
-    // ----- Same -----  
 }
 async function getDiff() {
     if (githubToken && context.payload.pull_request) {

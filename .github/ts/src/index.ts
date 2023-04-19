@@ -1,17 +1,25 @@
-// --------  diff --------
 import { context as ctx, getOctokit } from "@actions/github";
-import { getInput } from "@actions/core"; // core 
+import { getInput } from '@actions/core';
 
 const githubToken = process.env.GITHUB_TOKEN!;
 const github = getOctokit(githubToken);
 const context = ctx;
 github_action()
-// --------  diff --------
 
 async function github_action() {
 
-    // ----- Same -----  
-    const message = "coucou from TS";
+    let message = "coucou from TS  \n\n";
+
+
+    const files_names = await getDiff();
+    files_names.map((file) => {
+        console.log(file.filename);
+        message += ` - ${file.filename}  \n`;
+    });
+
+    const prBody = getInput('pr_body');
+    message += "Body : " + prBody;
+
 
     await github.rest.issues.createComment({
         owner: context.repo.owner,
@@ -19,13 +27,6 @@ async function github_action() {
         issue_number: context.issue.number,
         body: message
     });
-
-    const files_names = await getDiff();
-    files_names.map((file) => {
-        console.log(file.filename);
-    });
-
-    // ----- Same -----  
 }
 
 async function getDiff(){
