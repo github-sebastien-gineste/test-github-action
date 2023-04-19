@@ -10,8 +10,8 @@ async function github_action() {
   await octokit.rest.issues.createComment({
       ...context.repo,
       issue_number: pullRequestNumber,
-      body: "Coucou from TS"
+      body: "Coucou"
     });
 }
 
-await github_action()
+github_action()

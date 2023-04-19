@@ -1,17 +1,14 @@
 {
     "compilerOptions": {
-        "target": "es2022",
-        "module": "es2022",
+        "target": "es2019",
+        "module": "Commonjs",
         "strict": true,
-        "preserveConstEnums": true,
-        "moduleResolution": "node",
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "outDir": "dist",
         "composite": true,
-        "sourceMap": true,
-        "lib": ["es2020"],
+        "lib": ["esnext"]
     },
     "references": [
         { 
