@@ -1,4 +1,10 @@
 module.exports = async ({github, context, core})=> {
+    const execa = require('execa')
+
+    const { stdout } = await execa('echo', ['hello', 'world'])
+
+    console.log(stdout)
+    
     const message = "coucou from JS";
  
     await github.rest.issues.createComment({

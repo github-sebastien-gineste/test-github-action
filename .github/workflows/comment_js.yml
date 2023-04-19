@@ -19,18 +19,20 @@ jobs:
     - name: Checkout le code
       uses: actions/checkout@v3
 
-    - uses: actions/setup-node@v3
+    - name: "Use node.js 16.x"
+      uses: actions/setup-node@v3
       with:
         node-version: 16
-    - run: cd ./.github/js && npm install execa
-    - uses: actions/github-script@v6
-      with:
+    - name: Installer les dépendances
+      run: cd .github/js && npm ci
+    - name: Ajouter un commentaire en JS
+      uses: actions/github-script@v6
+      with: 
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
-          const execa = require('execa')
+          const script = require('./.github/js/index.js')
+          await script({github, context, core})
 
-          const { stdout } = await execa('echo', ['hello', 'world'])
-
-          console.log(stdout)
 
         
         
