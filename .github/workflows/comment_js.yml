@@ -22,9 +22,7 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version: 16
-    - run: npm ci
-    # or one-off:
-    - run: npm install execa
+    - run: cd ./.github/js && npm install execa
     - uses: actions/github-script@v6
       with:
         script: |
