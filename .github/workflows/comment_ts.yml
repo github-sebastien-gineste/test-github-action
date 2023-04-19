@@ -12,11 +12,14 @@ jobs:
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
+    - name: Move
+      run: cd ./.github/ts/ 
     - name: Use node.js 16.x
       uses: actions/setup-node@v2
       with:
         node-version: 16.x
         cache: npm
+        cache-dependency-path: package-lock.json
     - name: Install dependencies
       run: cd ./.github/ts/ && npm ci
     - name: build
