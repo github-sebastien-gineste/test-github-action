@@ -1,5 +1,17 @@
-import { context } from "@actions/github";
+import { context, getOctokit } from "@actions/github";
 
-const githubToken = process.env.GITHUB_TOKEN?.length;
+async function github_action() {
+  const githubToken = process.env.GITHUB_TOKEN;
+  if(!githubToken) {return}
 
-console.log('Hello, world!' + githubToken)
+  const pullRequestNumber : number = context.payload.pull_request? context.payload.pull_request.number : -1;
+
+  const octokit = getOctokit(githubToken);
+  await octokit.rest.issues.createComment({
+      ...context.repo,
+      issue_number: pullRequestNumber,
+      body: "Coucou from TS"
+    });
+}
+
+await github_action()
