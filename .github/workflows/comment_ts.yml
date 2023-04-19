@@ -12,11 +12,11 @@ jobs:
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
-    - name: Use node.js 16.x
-      uses: actions/setup-node@v2
+    - name: Use node.js 18.x
+      uses: actions/setup-node@v3
       with:
-        node-version: 16.x
-        cache: npm
+        node-version: 18.x
+        cache: .github/ts/npm
         cache-dependency-path: .github/ts/package-lock.json
     - name: Install dependencies 
       run: cd ./.github/ts/ && npm ci
