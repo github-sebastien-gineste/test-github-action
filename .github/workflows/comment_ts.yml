@@ -6,22 +6,24 @@ on:
       - opened
       - edited
 
-permissions:
-  contents: 'read'
-  issues: 'write'
-  id-token: 'write'
-  pull-requests: 'write'
-
 jobs:
   add_comment_ts:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
-    - name: Ajouter un commentaire en TS
-      runs:
-        using: 'node16'
-        main: '.github/ts/dist/src/index.js'
+    - name: Use node.js 16.x
+      uses: actions/setup-node@v2
+      with:
+        node-version: 16.x
+        cache: npm
+        cache-dependency-path: package-lock.json
+    - name: Install dependencies
+      run: cd ./.github/ts/ && npm ci
+    - name: build
+      runs: cd ./.github/ts/ && npm run build
+    - name: run action
+      runs: node ./.github/ts/dist/src/index.js
 
         
         
