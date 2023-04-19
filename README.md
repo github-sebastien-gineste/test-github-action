@@ -1,5 +1,6 @@
 # test-github-action
 
+
 _**All unnecessary sections of this template should be removed**<br>
 So that it represents your changes as closely as possible and facilitates review by the different teams._
 
@@ -41,3 +42,4 @@ _Please describe your changes in detail and provide related JIRA ticket(s)._
 - [ ] The migrations are [only applied on api-domains MySQL cluster](https://github.com/ebuzzing/service-api-domains/blob/master/documentation/ADR/OnlyApplyMigrationsToApiDomainsCluster.md)
 - [ ] I have tested my migration in a sandbox (SQL migrations cannot be tested in a deploy-PR to avoid modifying production's schemas)
 - [ ] I will [deploy api-domains-migrations](https://github.com/ebuzzing/service-api-domains/blob/master/documentation/HowTo/HowToDeployApiDomainsMigrations.md) first then `api-domains`
+
