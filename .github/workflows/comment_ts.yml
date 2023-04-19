@@ -16,7 +16,7 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: 16.x
-        cache: /.github/ts/npm
+        cache: npm
         cache-dependency-path: /.github/ts/package-lock.json
     - name: Install dependencies
       run: cd ./.github/ts/ && npm ci
