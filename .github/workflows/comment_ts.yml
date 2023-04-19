@@ -12,8 +12,6 @@ jobs:
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
-    - name: Move
-      run: cd ./.github/ts/ 
     - name: Use node.js 16.x
       uses: actions/setup-node@v2
       with:
