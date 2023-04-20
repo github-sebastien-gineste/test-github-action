@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -41,13 +42,15 @@ func main() {
 
 	// Afficher les fichiers modifiés
 	fmt.Println("Fichiers modifiés dans la Pull Request :")
+	var filenames []string
 	for _, file := range files {
-		fmt.Println(*file.Filename)
+		filenames = append(filenames, *file.Filename)
 	}
+	filesStr := strings.Join(filenames, "\n")
 
 	// Ajouter un commentaire à la Pull Request
 	comment := &github.IssueComment{
-		Body: github.String("Coucou from Go"),
+		Body: github.String(fmt.Sprintf("Coucou ! Voici la liste des fichiers modifiés dans cette Pull Request : \n\n%s", filesStr)),
 	}
 	_, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
 	if err != nil {
