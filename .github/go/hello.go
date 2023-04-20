@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// Lire le contenu du fichier check.md
-	file, err := os.Open(".github/template/proto_checklist.md")
+	file, err := os.Open("../template/proto_checklist.md")
 	if err != nil {
 		fmt.Println(err)
 		return
