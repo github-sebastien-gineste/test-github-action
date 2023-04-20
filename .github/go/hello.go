@@ -47,20 +47,20 @@ func main() {
 			Title: stringPtr("proto_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a proto PR.*$`),
 			RegexFileNames: stringPtr(`^.*.proto$`), Is_Used: boolPtr(false),
 		}, {
-			Title: stringPtr("development_conf_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a change in development configuration.*$`),
-			RegexFileNames: stringPtr(`^.*.Handler.scala$`), Is_Used: boolPtr(false),
+			Title: stringPtr("implementation_rpc_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a change in development configuration.*$`),
+			RegexFileNames: stringPtr(`^.*Handler.scala$`), Is_Used: boolPtr(false),
 		},
 		{
-			Title: stringPtr("implementation_rpc_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for an implementation PR.*$`),
+			Title: stringPtr("development_conf_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for an implementation PR.*$`),
 			RegexFileNames: stringPtr(`^.*.conf$`), Is_Used: boolPtr(false), // TODO: remove the api-domains.conf
 		},
 		{
 			Title: stringPtr("production_conf_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a change in production's configuration.*$`),
-			RegexFileNames: stringPtr(`^.*.api-domains.conf$`), Is_Used: boolPtr(false),
+			RegexFileNames: stringPtr(`^.*api-domains.conf$`), Is_Used: boolPtr(false),
 		},
 		{
 			Title: stringPtr("sql_migration_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`),
-			RegexFileNames: stringPtr(`^.*.proto$`), Is_Used: boolPtr(false),
+			RegexFileNames: stringPtr(`^.*.sql$`), Is_Used: boolPtr(false),
 		},
 	}
 
