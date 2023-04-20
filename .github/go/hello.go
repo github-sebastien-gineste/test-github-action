@@ -91,6 +91,12 @@ func main() {
 
 	u := fmt.Sprintf("repos/%v/%v/pulls/%d", owner, repo, pr.GetNumber())
 
+	req, err := client.NewRequest("PATCH", u, new(github.PullRequest))
+
+	println(req.URL.String())
+
+	client.Do(ctx, req, nil)
+
 	println(u)
 
 	_, _, err = client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), pr)
