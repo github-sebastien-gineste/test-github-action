@@ -82,22 +82,12 @@ func main() {
 	//body := strings.Join(bodyLines, "\n")
 
 	// Mettre à jour le corps de la Pull Request avec  le contenu du fichier  check.md
-	pr.MaintainerCanModify = github.Bool(true)
+	//pr.MaintainerCanModify = github.Bool(true)
 	pr.Body = github.String("body")
 
 	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
 	fmt.Println("Body de la Pull Request : ", pr.GetBody())
 	fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
-
-	u := fmt.Sprintf("repos/%v/%v/pulls/%d", owner, repo, pr.GetNumber())
-
-	req, err := client.NewRequest("PATCH", u, new(github.PullRequest))
-
-	println(req.URL.String())
-
-	client.Do(ctx, req, nil)
-
-	println(u)
 
 	_, _, err = client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), pr)
 	if err != nil {
