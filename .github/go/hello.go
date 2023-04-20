@@ -87,7 +87,7 @@ func main() {
 
 	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
 	fmt.Println("Body de la Pull Request : ", pr.GetBody())
-	fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
+	//fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
 
 	_, _, err = client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), pr)
 	if err != nil {
