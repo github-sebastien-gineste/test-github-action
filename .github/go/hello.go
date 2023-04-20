@@ -13,15 +13,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type CheckList string
-
-const (
-	PROTO              CheckList = "proto_checklist.md"
-	DEVELOPMENT_CONF   CheckList = "development_conf_checklist.md"
-	IMPLEMENTATION_RPC CheckList = "implementation_rpc_checklist.md"
-	PRODUCTION_CONF    CheckList = "production_conf_checklist.md"
-	SQL_MIGRATION      CheckList = "sql_migration_checklist.md"
-)
+type CheckList struct {
+	Title   *string `json:"title,omitempty"`
+	Regex   *string `json:"regex,omitempty"`
+	Is_Used *bool   `json:"is_used,omitempty"`
+}
 
 func main() {
 	// Récupérer le token d'authentification depuis les secrets de Github
@@ -43,12 +39,20 @@ func main() {
 
 	// ---- Start ----
 
-	isChecklistPresent := make(map[CheckList]bool)
-	isChecklistPresent[PROTO] = false
-	isChecklistPresent[DEVELOPMENT_CONF] = false
-	isChecklistPresent[IMPLEMENTATION_RPC] = false
-	isChecklistPresent[PRODUCTION_CONF] = false
-	isChecklistPresent[SQL_MIGRATION] = false
+	checkList := []CheckList{
+		{Title: stringPtr("proto_checklist.md"), Regex: stringPtr(`^.*# Checklist for a proto PR.*$`), Is_Used: boolPtr(false)},
+		{Title: stringPtr("development_conf_checklist"), Regex: stringPtr(`^.*# Checklist for a change in development configuration.*$`), Is_Used: boolPtr(false)},
+		{Title: stringPtr("implementation_rpc_checklist"), Regex: stringPtr(`^.*# Checklist for an implementation PR.*$`), Is_Used: boolPtr(false)},
+		{Title: stringPtr("production_conf_checklist"), Regex: stringPtr(`^.*# Checklist for a change in production's configuration.*$`), Is_Used: boolPtr(false)},
+		{Title: stringPtr("sql_migration_checklist"), Regex: stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`), Is_Used: boolPtr(false)},
+	}
+
+	for _, checkListItem := range checkList {
+		if lineMatchesRegex(pr.GetBody(), regexp.MustCompile(*checkListItem.Regex)) {
+			*checkListItem.Is_Used = true // The checklist is already used
+		}
+		println(*checkListItem.Title + " : " + strconv.FormatBool(*checkListItem.Is_Used))
+	}
 
 	// search regex pattern in the pr body
 
@@ -131,4 +135,12 @@ func lineMatchesRegex(s string, r *regexp.Regexp) bool {
 		}
 	}
 	return false
+}
+
+func stringPtr(s string) *string {
+	return &s
+}
+
+func boolPtr(b bool) *bool {
+	return &b
 }
