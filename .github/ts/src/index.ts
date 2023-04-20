@@ -33,6 +33,13 @@ async function github_action() {
         // Do nothing
 
     // Split the readme in specific checklist 
+
+   await github.rest.pulls.update({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: context.payload.pull_request!.number,
+      body: "coucou from TS"
+    });
     
     await github.rest.issues.createComment({
         owner: context.repo.owner,
