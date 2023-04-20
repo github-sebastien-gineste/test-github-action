@@ -79,17 +79,17 @@ func main() {
 	for scanner.Scan() {
 		bodyLines = append(bodyLines, scanner.Text())
 	}
-	//body := strings.Join(bodyLines, "\n")
+	body := strings.Join(bodyLines, "\n")
 
 	// Mettre à jour le corps de la Pull Request avec  le contenu du fichier  check.md
-	pr.MaintainerCanModify = nil
-	pr.Body = github.String("body")
+	updatePR := &github.PullRequest{
+		Title: pr.Title,
+		Body:  github.String(body),
+		State: pr.State,
+		Base:  pr.Base,
+	}
 
-	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
-	fmt.Println("Body de la Pull Request : ", pr.GetBody())
-	//fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
-
-	_, _, err = client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), pr)
+	_, _, err = client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), updatePR)
 	if err != nil {
 		fmt.Println(err)
 		return
