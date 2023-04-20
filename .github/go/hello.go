@@ -17,7 +17,6 @@ type CheckList struct {
 	Title          *string `json:"title,omitempty"`
 	RegexBody      *string `json:"regex,omitempty"`
 	RegexFileNames *string `json:"regex_file_names,omitempty"`
-	Is_Used        *bool   `json:"is_used,omitempty"`
 }
 
 func main() {
@@ -44,29 +43,33 @@ func main() {
 
 	checkList := []CheckList{
 		{
-			Title: stringPtr("proto_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a proto PR.*$`),
-			RegexFileNames: stringPtr(`^.*.proto$`), Is_Used: boolPtr(false),
+			Title:          stringPtr("proto_checklist.md"),
+			RegexBody:      stringPtr(`^.*# Checklist for a proto PR.*$`),
+			RegexFileNames: stringPtr(`^.*.proto$`),
 		}, {
-			Title: stringPtr("implementation_rpc_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a change in development configuration.*$`),
-			RegexFileNames: stringPtr(`^.*Handler.scala$`), Is_Used: boolPtr(false),
+			Title:          stringPtr("implementation_rpc_checklist.md"),
+			RegexBody:      stringPtr(`^.*# Checklist for a change in development configuration.*$`),
+			RegexFileNames: stringPtr(`^.*Handler.scala$`),
 		},
 		{
-			Title: stringPtr("development_conf_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for an implementation PR.*$`),
-			RegexFileNames: stringPtr(`^.*.conf$`), Is_Used: boolPtr(false), // TODO: remove the api-domains.conf
+			Title:          stringPtr("development_conf_checklist.md"),
+			RegexBody:      stringPtr(`^.*# Checklist for an implementation PR.*$`),
+			RegexFileNames: stringPtr(`^.*.conf$`), // TODO: remove the api-domains.conf in the detection
 		},
 		{
-			Title: stringPtr("production_conf_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a change in production's configuration.*$`),
-			RegexFileNames: stringPtr(`^.*api-domains.conf$`), Is_Used: boolPtr(false),
+			Title:          stringPtr("production_conf_checklist.md"),
+			RegexBody:      stringPtr(`^.*# Checklist for a change in production's configuration.*$`),
+			RegexFileNames: stringPtr(`^.*api-domains.conf$`),
 		},
 		{
-			Title: stringPtr("sql_migration_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`),
-			RegexFileNames: stringPtr(`^.*.sql$`), Is_Used: boolPtr(false),
+			Title:          stringPtr("sql_migration_checklist.md"),
+			RegexBody:      stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`),
+			RegexFileNames: stringPtr(`^.*.sql$`),
 		},
 	}
 
 	for _, checkListItem := range checkList {
 		if lineMatchesRegex(currentBody, regexp.MustCompile(*checkListItem.RegexBody)) {
-			*checkListItem.Is_Used = true // The checklist is already used
 			// check if we need to remove the checklist
 			checklist_justify_presence := false
 			for _, filename := range filenames {
@@ -99,11 +102,10 @@ func main() {
 				}
 			}
 			if checklist_justify_presence {
-				// remove the checklist
+				// add the checklist
 				currentBody += "\n" + getFileContent(*checkListItem.Title)
 			}
 		}
-		println(*checkListItem.Title + " : " + strconv.FormatBool(*checkListItem.Is_Used))
 	}
 
 	// ---- End ----
