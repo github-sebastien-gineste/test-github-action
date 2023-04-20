@@ -14,9 +14,10 @@ import (
 )
 
 type CheckList struct {
-	Title   *string `json:"title,omitempty"`
-	Regex   *string `json:"regex,omitempty"`
-	Is_Used *bool   `json:"is_used,omitempty"`
+	Title          *string `json:"title,omitempty"`
+	RegexBody      *string `json:"regex,omitempty"`
+	RegexFileNames *string `json:"regex_file_names,omitempty"`
+	Is_Used        *bool   `json:"is_used,omitempty"`
 }
 
 func main() {
@@ -39,48 +40,76 @@ func main() {
 
 	// ---- Start ----
 
+	currentBody := pr.GetBody()
+
 	checkList := []CheckList{
-		{Title: stringPtr("proto_checklist.md"), Regex: stringPtr(`^.*# Checklist for a proto PR.*$`), Is_Used: boolPtr(false)},
-		{Title: stringPtr("development_conf_checklist"), Regex: stringPtr(`^.*# Checklist for a change in development configuration.*$`), Is_Used: boolPtr(false)},
-		{Title: stringPtr("implementation_rpc_checklist"), Regex: stringPtr(`^.*# Checklist for an implementation PR.*$`), Is_Used: boolPtr(false)},
-		{Title: stringPtr("production_conf_checklist"), Regex: stringPtr(`^.*# Checklist for a change in production's configuration.*$`), Is_Used: boolPtr(false)},
-		{Title: stringPtr("sql_migration_checklist"), Regex: stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`), Is_Used: boolPtr(false)},
+		{
+			Title: stringPtr("proto_checklist.md"), RegexBody: stringPtr(`^.*# Checklist for a proto PR.*$`),
+			RegexFileNames: stringPtr(`^.*.proto$`), Is_Used: boolPtr(false),
+		}, {
+			Title: stringPtr("development_conf_checklist"), RegexBody: stringPtr(`^.*# Checklist for a change in development configuration.*$`),
+			RegexFileNames: stringPtr(`^.*.Handler.scala$`), Is_Used: boolPtr(false),
+		},
+		{
+			Title: stringPtr("implementation_rpc_checklist"), RegexBody: stringPtr(`^.*# Checklist for an implementation PR.*$`),
+			RegexFileNames: stringPtr(`^.*.conf$`), Is_Used: boolPtr(false), // TODO: remove the api-domains.conf
+		},
+		{
+			Title: stringPtr("production_conf_checklist"), RegexBody: stringPtr(`^.*# Checklist for a change in production's configuration.*$`),
+			RegexFileNames: stringPtr(`^.*.api-domains.conf$`), Is_Used: boolPtr(false),
+		},
+		{
+			Title: stringPtr("sql_migration_checklist"), RegexBody: stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`),
+			RegexFileNames: stringPtr(`^.*.proto$`), Is_Used: boolPtr(false),
+		},
 	}
 
 	for _, checkListItem := range checkList {
-		if lineMatchesRegex(pr.GetBody(), regexp.MustCompile(*checkListItem.Regex)) {
+		if lineMatchesRegex(currentBody, regexp.MustCompile(*checkListItem.RegexBody)) {
 			*checkListItem.Is_Used = true // The checklist is already used
+			// check if we need to remove the checklist
+			checklist_justify_presence := false
+			for _, filename := range filenames {
+				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexFileNames)) {
+					checklist_justify_presence = true
+				}
+			}
+			if !checklist_justify_presence {
+				// remove the checklist
+				newBody := ""
+				step := 0
+				for _, line := range strings.Split(currentBody, "\n") {
+					if step == 0 && lineMatchesRegex(line, regexp.MustCompile(*checkListItem.RegexBody)) {
+						step = 1
+					} else if step == 1 && strings.HasPrefix(line, "#") {
+						step = 2
+						newBody += line + "\n"
+					} else if step != 1 {
+						newBody += line + "\n"
+					}
+				}
+				currentBody = newBody
+			}
+		} else {
+			// check if we need to add the checklist
+			checklist_justify_presence := false
+			for _, filename := range filenames {
+				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexFileNames)) {
+					checklist_justify_presence = true
+				}
+			}
+			if checklist_justify_presence {
+				// remove the checklist
+				currentBody += "\n" + getFileContent(*checkListItem.Title)
+			}
 		}
 		println(*checkListItem.Title + " : " + strconv.FormatBool(*checkListItem.Is_Used))
-	}
-
-	// search regex pattern in the pr body
-
-	r := regexp.MustCompile(`^.*# Checklist for a proto PR.*$`)
-	if lineMatchesRegex(pr.GetBody(), r) {
-		fmt.Println("Le string contient une ligne qui correspond au regex")
-	} else {
-		fmt.Println("Le string ne contient pas de ligne qui correspond au regex")
 	}
 
 	// ---- End ----
 	fmt.Println("Fichiers modifiés :" + filesStr)
 
-	// Lire le contenu du fichier check.md
-	file, err := os.Open("../template/proto_checklist.md")
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	defer file.Close()
-	scanner := bufio.NewScanner(file)
-	var bodyLines []string
-	for scanner.Scan() {
-		bodyLines = append(bodyLines, scanner.Text())
-	}
-	body := strings.Join(bodyLines, "\n")
-
-	updatePR(client, ctx, owner, repo, pr, body)
+	updatePR(client, ctx, owner, repo, pr, currentBody)
 	fmt.Println("Body updated with success !")
 }
 
@@ -143,4 +172,20 @@ func stringPtr(s string) *string {
 
 func boolPtr(b bool) *bool {
 	return &b
+}
+
+func getFileContent(filename string) string {
+	file, err := os.Open("../template/" + filename)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	var bodyLines []string
+	for scanner.Scan() {
+		bodyLines = append(bodyLines, scanner.Text())
+	}
+
+	return strings.Join(bodyLines, "\n")
 }
