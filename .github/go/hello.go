@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -52,9 +53,32 @@ func main() {
 
 	// Ajouter un commentaire à la Pull Request
 	comment := &github.IssueComment{
-		Body: github.String(fmt.Sprintf("Coucou ! Voici la liste des fichiers modifiés dans cette Pull Request : \n\n%s \n %s", filesStr, prBody)),
+		Body: github.String(fmt.Sprintf("Coucou ! Voici la liste des fichiers modifiés dans cette Pull Request : \n\n%s \nBody : \n %s", filesStr, prBody)),
 	}
+
 	_, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Lire le contenu du fichier check.md
+	file, err := os.Open(".github/template/proto_checklist.md")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	var bodyLines []string
+	for scanner.Scan() {
+		bodyLines = append(bodyLines, scanner.Text())
+	}
+	body := strings.Join(bodyLines, "\n")
+
+	// Mettre à jour le corps de la Pull Request avec le contenu du fichier check.md
+	pr.Body = github.String(body)
+	_, _, err = client.PullRequests.Edit(context.Background(), owner, repo, pr.GetNumber(), pr)
 	if err != nil {
 		fmt.Println(err)
 		return
