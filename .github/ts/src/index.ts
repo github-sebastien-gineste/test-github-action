@@ -22,6 +22,18 @@ async function github_action() {
     message += "Body : " + process.env.PR_BODY;
 
 
+    // Déclenche l'évenement que lors d'un push vers la PR 
+    // Get the last Dif of the PR
+    // Compare the files names changed
+    // If the file name is new in the checklist
+        // Add its checklist
+    // Else if a file name disapeer
+        // Remove its checklist
+    // Else
+        // Do nothing
+
+    // Split the readme in specific checklist 
+    
     await github.rest.issues.createComment({
         owner: context.repo.owner,
         repo: context.repo.repo,

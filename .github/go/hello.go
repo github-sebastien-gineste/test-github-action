@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"context"
 	"strconv"
 
-    "github.com/google/go-github/github"
-    "golang.org/x/oauth2"
+	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 func main() {
@@ -16,32 +16,44 @@ func main() {
 
 	// Créer un client Github avec l'authentification
 	ts := oauth2.StaticTokenSource(
-        &oauth2.Token{AccessToken: token},
-    )
-    tc := oauth2.NewClient(oauth2.NoContext, ts)
-    client := github.NewClient(tc)
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	client := github.NewClient(tc)
 
-	 // Récupérer les informations de la Pull Request
-	 prNumberStr := os.Getenv("PR_NUMBER")
-	 prNumber, err := strconv.Atoi(prNumberStr)
-	 owner := os.Getenv("OWNER")
-	 repo := os.Getenv("REPO")
-	 pr, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber)
-	 if err != nil {
-		 fmt.Println(err)
-		 return
-	 }
+	// Récupérer les informations de la Pull Request
+	prNumberStr := os.Getenv("PR_NUMBER")
+	prNumber, err := strconv.Atoi(prNumberStr)
+	owner := os.Getenv("OWNER")
+	repo := os.Getenv("REPO")
+	pr, _, err := client.PullRequests.Get(context.Background(), owner, repo, prNumber)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Récupérer les fichiers modifiés dans la Pull Request
+	files, _, err := client.PullRequests.ListFiles(context.Background(), owner, repo, prNumber, nil)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// Afficher les fichiers modifiés
+	fmt.Println("Fichiers modifiés dans la Pull Request :")
+	for _, file := range files {
+		fmt.Println(*file.Filename)
+	}
 
 	// Ajouter un commentaire à la Pull Request
 	comment := &github.IssueComment{
 		Body: github.String("Coucou from Go"),
-    }
-    _, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
+	}
+	_, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	fmt.Println("Commentaire ajouté avec succès")
 }
-
