@@ -82,7 +82,7 @@ func main() {
 	//body := strings.Join(bodyLines, "\n")
 
 	// Mettre à jour le corps de la Pull Request avec  le contenu du fichier  check.md
-	//pr.MaintainerCanModify = github.Bool(true)
+	pr.MaintainerCanModify = nil
 	pr.Body = github.String("body")
 
 	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
