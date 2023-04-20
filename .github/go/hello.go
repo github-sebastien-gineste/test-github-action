@@ -41,6 +41,8 @@ func main() {
 	}
 
 	// Afficher les fichiers modifiés
+	prBody := os.Getenv("PR_BODY")
+
 	fmt.Println("Fichiers modifiés dans la Pull Request :")
 	var filenames []string
 	for _, file := range files {
@@ -50,7 +52,7 @@ func main() {
 
 	// Ajouter un commentaire à la Pull Request
 	comment := &github.IssueComment{
-		Body: github.String(fmt.Sprintf("Coucou ! Voici la liste des fichiers modifiés dans cette Pull Request : \n\n%s", filesStr)),
+		Body: github.String(fmt.Sprintf("Coucou ! Voici la liste des fichiers modifiés dans cette Pull Request : \n\n%s \n %s", filesStr, prBody)),
 	}
 	_, _, err = client.Issues.CreateComment(context.Background(), owner, repo, pr.GetNumber(), comment)
 	if err != nil {
