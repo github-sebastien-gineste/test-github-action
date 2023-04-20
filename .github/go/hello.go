@@ -34,6 +34,10 @@ func main() {
 		return
 	}
 
+	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
+	fmt.Println("Body de la Pull Request : ", pr.GetBody())
+	fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
+
 	// Récupérer les fichiers modifiés dans la Pull Request
 	files, _, err := client.PullRequests.ListFiles(context.Background(), owner, repo, prNumber, nil)
 	if err != nil {
