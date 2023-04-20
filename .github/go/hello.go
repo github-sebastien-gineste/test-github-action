@@ -83,6 +83,11 @@ func main() {
 	// Mettre à jour le corps de la Pull Request avec  le contenu du fichier  check.md
 	pr.MaintainerCanModify = github.Bool(true)
 	pr.Body = github.String(body)
+
+	fmt.Println("Titre de la Pull Request : ", pr.GetTitle())
+	fmt.Println("Body de la Pull Request : ", pr.GetBody())
+	fmt.Println("Is_editable : ", pr.GetMaintainerCanModify())
+
 	_, _, err = client.PullRequests.Edit(context.Background(), owner, repo, pr.GetNumber(), pr)
 	if err != nil {
 		fmt.Println(err)
