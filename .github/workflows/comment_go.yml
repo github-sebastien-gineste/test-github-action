@@ -6,6 +6,12 @@ on:
       - opened
       - synchronize
 
+permissions:
+  contents: 'read'
+  issues: 'write'
+  id-token: 'write'
+  pull-requests: 'write'
+
 jobs:
   add_comment_go:
     runs-on: ubuntu-latest
