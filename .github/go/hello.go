@@ -77,6 +77,7 @@ func main() {
 	body := strings.Join(bodyLines, "\n")
 
 	// Mettre à jour le corps de la Pull Request avec le contenu du fichier  check.md
+	pr.MaintainerCanModify = github.Bool(true)
 	pr.Body = github.String(body)
 	_, _, err = client.PullRequests.Edit(context.Background(), owner, repo, pr.GetNumber(), pr)
 	if err != nil {
