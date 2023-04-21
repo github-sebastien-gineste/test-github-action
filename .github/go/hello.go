@@ -38,7 +38,7 @@ func initCheckList() []CheckList {
 		}, {
 			Filename:       stringPtr("development_conf_checklist.md"),
 			Title:          stringPtr(`# Checklist for an implementation PR`),
-			RegexDiffFiles: stringPtr(`\.conf$`), // Each files ended by .conf except api-domains.conf
+			RegexDiffFiles: stringPtr(`\.conf$`),
 		}, {
 			Filename:       stringPtr("production_conf_checklist.md"),
 			Title:          stringPtr(`# Checklist for a change in production's configuration`),
