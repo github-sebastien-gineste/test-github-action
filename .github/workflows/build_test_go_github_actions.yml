@@ -6,7 +6,7 @@ on:
       - opened
       - synchronize
     paths:
-      - '.gituhb/go/**/**.*'
+      - '.github/go/**'
       - '.github/workflows/comment_go.yml'
       - '.github/template/**'
 
