@@ -1,4 +1,4 @@
-name: Add relevant checklist
+name: check checkboxes checked
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - synchronize
 
 jobs:
-  add_relevent_checklist:
+  check checkbox:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
@@ -24,7 +24,7 @@ jobs:
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
         TEST: ${{ steps.test.outputs.CHEKLIST }}
-      run: cd ./.github/go/ && go run test/main.go 
+      run: cd ./.github/go/ && go run check-list-checked/main.go 
 
   
     
