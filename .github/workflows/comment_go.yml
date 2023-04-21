@@ -23,11 +23,11 @@ jobs:
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-        TEST: 
-          - { "name": "test1", "value": "test1" }
-          - { "name": "test2", "value": "test2" }
-          - { "name": "test3", "value": "test3" }
       run: cd ./.github/go/ && go run hello.go 
+      with:
+        - { "name": "test1", "value": "test1" }
+        - { "name": "test2", "value": "test2" }
+        - { "name": "test3", "value": "test3" }
 
 
         
