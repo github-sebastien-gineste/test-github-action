@@ -14,9 +14,35 @@ import (
 )
 
 type CheckList struct {
-	Title          *string `json:"title,omitempty"`            // needed ? Filename
-	RegexBody      *string `json:"regex,omitempty"`            // Title (without regex)
-	RegexFileNames *string `json:"regex_file_names,omitempty"` // See Julien work with migration
+	Filename       *string
+	Title          *string
+	RegexDiffFiles *string
+}
+
+func initCheckList() []CheckList {
+	return []CheckList{
+		{
+			Filename:       stringPtr("proto_checklist.md"),
+			Title:          stringPtr(`# Checklist for a proto PR`),
+			RegexDiffFiles: stringPtr(`\.proto$`),
+		}, {
+			Filename:       stringPtr("implementation_rpc_checklist.md"),
+			Title:          stringPtr(`# Checklist for a change in development configuration`),
+			RegexDiffFiles: stringPtr(`Handler\.scala$`),
+		}, {
+			Filename:       stringPtr("development_conf_checklist.md"),
+			Title:          stringPtr(`# Checklist for an implementation PR`),
+			RegexDiffFiles: stringPtr(`^(?!api-domains\.conf$).*\.conf$`), // Each files ended by .conf except api-domains.conf
+		}, {
+			Filename:       stringPtr("production_conf_checklist.md"),
+			Title:          stringPtr(`# Checklist for a change in production's configuration`),
+			RegexDiffFiles: stringPtr(`^api-domains.conf$`),
+		}, {
+			Filename:       stringPtr("sql_migration_checklist.md"),
+			Title:          stringPtr(`# Checklist for a PR containing SQL migrations`),
+			RegexDiffFiles: stringPtr(`\.sql$`),
+		},
+	}
 }
 
 func main() {
@@ -28,9 +54,6 @@ func main() {
 	prNumber, err := strconv.Atoi(prNumberStr)
 	owner := os.Getenv("OWNER")
 	repo := os.Getenv("REPO")
-
-	test := os.Getenv("TEST")
-	fmt.Println("TEST: " + test)
 
 	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
 	if err != nil {
@@ -48,39 +71,14 @@ func main() {
 
 	currentBody := pr.GetBody()
 
-	checkList := []CheckList{ // See if we can use "with" in the YML file
-		{
-			Title:          stringPtr("proto_checklist.md"),
-			RegexBody:      stringPtr(`^.*# Checklist for a proto PR.*$`),
-			RegexFileNames: stringPtr(`^.*.proto$`),
-		}, {
-			Title:          stringPtr("implementation_rpc_checklist.md"),
-			RegexBody:      stringPtr(`^.*# Checklist for a change in development configuration.*$`),
-			RegexFileNames: stringPtr(`^.*Handler.scala$`),
-		},
-		{
-			Title:          stringPtr("development_conf_checklist.md"),
-			RegexBody:      stringPtr(`^.*# Checklist for an implementation PR.*$`),
-			RegexFileNames: stringPtr(`^.*.conf$`), // TODO: remove the api-domains.conf in the detection
-		},
-		{
-			Title:          stringPtr("production_conf_checklist.md"),
-			RegexBody:      stringPtr(`^.*# Checklist for a change in production's configuration.*$`),
-			RegexFileNames: stringPtr(`^.*api-domains.conf$`),
-		},
-		{
-			Title:          stringPtr("sql_migration_checklist.md"),
-			RegexBody:      stringPtr(`^.*# Checklist for a PR containing SQL migrations.*$`),
-			RegexFileNames: stringPtr(`^.*.sql$`),
-		},
-	}
+	checkList := initCheckList()
 
 	for _, checkListItem := range checkList {
-		if lineMatchesRegex(currentBody, regexp.MustCompile(*checkListItem.RegexBody)) {
+		if lineMatchesRegex(currentBody, regexp.MustCompile(*checkListItem.Title)) {
 			// check if we need to remove the checklist
 			checklist_justify_presence := false
 			for _, filename := range filenames {
-				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexFileNames)) {
+				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexDiffFiles)) {
 					checklist_justify_presence = true
 				}
 			}
@@ -89,7 +87,7 @@ func main() {
 				newBody := ""
 				step := 0
 				for _, line := range strings.Split(currentBody, "\n") {
-					if step == 0 && lineMatchesRegex(line, regexp.MustCompile(*checkListItem.RegexBody)) {
+					if step == 0 && lineMatchesRegex(line, regexp.MustCompile(*checkListItem.Title)) {
 						step = 1
 					} else if step == 1 && strings.HasPrefix(line, "#") {
 						step = 2
@@ -104,13 +102,13 @@ func main() {
 			// check if we need to add the checklist
 			checklist_justify_presence := false
 			for _, filename := range filenames {
-				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexFileNames)) {
+				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexDiffFiles)) {
 					checklist_justify_presence = true
 				}
 			}
 			if checklist_justify_presence {
 				// add the checklist
-				currentBody += "\n" + getFileContent(*checkListItem.Title)
+				currentBody += "\n" + getFileContent(*checkListItem.Filename)
 			}
 		}
 	}
@@ -143,6 +141,7 @@ func getDiffFiles(client *github.Client, ctx context.Context, owner string, repo
 
 	var filenames []string
 	for _, file := range files {
+		fmt.Println(*file.ContentsURL)
 		filenames = append(filenames, *file.Filename)
 	}
 

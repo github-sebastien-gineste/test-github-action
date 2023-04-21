@@ -17,14 +17,6 @@ jobs:
       with:
          go-version: 'stable'
          cache-dependency-path: .github/go/go.sum
-    - name: "define checklist"
-      id: test
-      run: |
-        echo 
-        `CHEKLIST=
-        {title:"proto_checklist.md",regex:"# Checklist for a proto PR"}
-        {title:"proto_checklist.md",regex:"# Checklist for a proto PR"}
-        ` >> "$GITHUB_OUTPUT"
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
