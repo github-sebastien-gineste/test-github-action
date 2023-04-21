@@ -14,9 +14,9 @@ import (
 )
 
 type CheckList struct {
-	Title          *string `json:"title,omitempty"`
-	RegexBody      *string `json:"regex,omitempty"`
-	RegexFileNames *string `json:"regex_file_names,omitempty"`
+	Title          *string `json:"title,omitempty"`            // needed ? Filename
+	RegexBody      *string `json:"regex,omitempty"`            // Title (without regex)
+	RegexFileNames *string `json:"regex_file_names,omitempty"` // See Julien work with migration
 }
 
 func main() {
@@ -28,6 +28,10 @@ func main() {
 	prNumber, err := strconv.Atoi(prNumberStr)
 	owner := os.Getenv("OWNER")
 	repo := os.Getenv("REPO")
+
+	test := os.Getenv("TEST")
+	fmt.Println("TEST: " + test)
+
 	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
 	if err != nil {
 		fmt.Println(err)
@@ -39,9 +43,12 @@ func main() {
 
 	// ---- Start ----
 
+	// TODO - see test
+	// TODO - if modif in go folder -> CI/CD test
+
 	currentBody := pr.GetBody()
 
-	checkList := []CheckList{
+	checkList := []CheckList{ // See if we can use "with" in the YML file
 		{
 			Title:          stringPtr("proto_checklist.md"),
 			RegexBody:      stringPtr(`^.*# Checklist for a proto PR.*$`),
