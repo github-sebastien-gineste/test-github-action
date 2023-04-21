@@ -1,28 +1,33 @@
-name: Ajouter un commentaire à la Pull Request en Go
+name: Add relevant checklist
 
 on:
   pull_request:
     types: 
       - opened
-      - edited
+      - synchronize
 
 jobs:
-  add_comment_go:
+  add_relevent_checklist:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout le code
       uses: actions/checkout@v3
-    - name: Ajouter un commentaire en GO
+    - name: Setup GO
       uses: actions/setup-go@v4
       with:
          go-version: 'stable'
+         cache-dependency-path: .github/go/go.sum
     - name: "go run"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
+        TEST: ${{ steps.test.outputs.CHEKLIST }}
       run: cd ./.github/go/ && go run hello.go 
+
+  
+    
 
 
         

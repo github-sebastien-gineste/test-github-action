@@ -4,7 +4,7 @@ on:
   pull_request:
     types: 
       - opened
-      - edited
+      - synchronize
 
 jobs:
   add_comment_ts:
@@ -23,6 +23,7 @@ jobs:
     - name: run action
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_BODY : ${{ github.event.pull_request.body }}
       run: node ./.github/ts/dist/src/index.js
 
         
