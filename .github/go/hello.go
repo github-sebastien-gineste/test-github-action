@@ -13,6 +13,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const PR_NUMBER = "PR_NUMBER"
+const OWNER = "OWNER"
+const REPO = "REPO"
+const GITHUB_TOKEN = "GITHUB_TOKEN"
+const TEMPLATE_CHECKLIST_PATH = "../template/"
+
 type CheckList struct {
 	Filename       *string
 	Title          *string
@@ -50,10 +56,10 @@ func main() {
 	ctx := context.Background()
 	client := connectClient(ctx)
 	// Récupérer les informations de la Pull Request
-	prNumberStr := os.Getenv("PR_NUMBER")
+	prNumberStr := os.Getenv(PR_NUMBER)
 	prNumber, err := strconv.Atoi(prNumberStr)
-	owner := os.Getenv("OWNER")
-	repo := os.Getenv("REPO")
+	owner := os.Getenv(OWNER)
+	repo := os.Getenv(REPO)
 
 	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
 	if err != nil {
@@ -70,47 +76,10 @@ func main() {
 	// TODO - if modif in go folder -> CI/CD test
 
 	currentBody := pr.GetBody()
-
 	checkList := initCheckList()
 
 	for _, checkListItem := range checkList {
-		if lineMatchesRegex(currentBody, regexp.MustCompile(`^`+*checkListItem.Title+`.*$`)) {
-			// check if we need to remove the checklist
-			checklist_justify_presence := false
-			for _, filename := range filenames {
-				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexDiffFiles)) {
-					checklist_justify_presence = true
-				}
-			}
-			if !checklist_justify_presence {
-				// remove the checklist
-				newBody := ""
-				step := 0
-				for _, line := range strings.Split(currentBody, "\n") {
-					if step == 0 && lineMatchesRegex(line, regexp.MustCompile(*checkListItem.Title)) {
-						step = 1
-					} else if step == 1 && strings.HasPrefix(line, "#") {
-						step = 2
-						newBody += line + "\n"
-					} else if step != 1 {
-						newBody += line + "\n"
-					}
-				}
-				currentBody = newBody
-			}
-		} else {
-			// check if we need to add the checklist
-			checklist_justify_presence := false
-			for _, filename := range filenames {
-				if lineMatchesRegex(filename, regexp.MustCompile(*checkListItem.RegexDiffFiles)) {
-					checklist_justify_presence = true
-				}
-			}
-			if checklist_justify_presence {
-				// add the checklist
-				currentBody += "\n" + getFileContent(*checkListItem.Filename)
-			}
-		}
+		currentBody = manageCheckListItem(currentBody, checkListItem, filenames)
 	}
 
 	// ---- End ----
@@ -120,8 +89,65 @@ func main() {
 	fmt.Println("Body updated with success !")
 }
 
+type StateRemoveCheckList int64
+
+const (
+	SearchCheckList StateRemoveCheckList = iota
+	RemoveCheckList
+	CopyRest
+)
+
+func manageCheckListItem(prbody string, checkListItem CheckList, filenames []string) string {
+	is_checklist_justify_presence := checkNeedCheckListItem(checkListItem, filenames)
+	is_checklist_already_present := lineMatchesRegex(prbody, `^`+*checkListItem.Title+`.*$`)
+
+	if is_checklist_already_present {
+		if !is_checklist_justify_presence {
+			prbody = removeCheckList(prbody, checkListItem)
+		}
+	} else if is_checklist_justify_presence {
+		prbody += "\n" + getFileContent(*checkListItem.Filename)
+	}
+
+	return prbody
+}
+
+func checkNeedCheckListItem(checkListItem CheckList, filenames []string) bool {
+	is_checklist_justify_presence := false
+	for _, filename := range filenames {
+		if lineMatchesRegex(filename, *checkListItem.RegexDiffFiles) {
+			is_checklist_justify_presence = true
+		}
+	}
+	return is_checklist_justify_presence
+}
+
+func removeCheckList(prbody string, checkListItem CheckList) string {
+	// remove the checklist
+	newBody := ""
+	stateRemoveCheckList := SearchCheckList
+	for _, line := range strings.Split(prbody, "\n") {
+		switch stateRemoveCheckList {
+		case SearchCheckList:
+			if lineMatchesRegex(line, `^`+*checkListItem.Title+`.*$`) {
+				stateRemoveCheckList = RemoveCheckList
+			} else {
+				newBody += line + "\n"
+			}
+		case RemoveCheckList:
+			if strings.HasPrefix(line, "#") {
+				stateRemoveCheckList = CopyRest
+				newBody += line + "\n"
+			}
+		case CopyRest:
+			newBody += line + "\n"
+		}
+	}
+	return newBody
+}
+
 func connectClient(ctx context.Context) *github.Client {
-	token := os.Getenv("GITHUB_TOKEN")
+	token := os.Getenv(GITHUB_TOKEN)
 
 	// Créer un client Github avec l'authentification
 	ts := oauth2.StaticTokenSource(
@@ -141,7 +167,6 @@ func getDiffFiles(client *github.Client, ctx context.Context, owner string, repo
 
 	var filenames []string
 	for _, file := range files {
-		fmt.Println(file.GetRawURL())
 		filenames = append(filenames, *file.Filename)
 	}
 
@@ -164,10 +189,10 @@ func updatePR(client *github.Client, ctx context.Context, owner string, repo str
 	}
 }
 
-func lineMatchesRegex(s string, r *regexp.Regexp) bool {
+func lineMatchesRegex(s string, regex string) bool {
 	lines := strings.Split(s, "\n")
 	for _, line := range lines {
-		if r.MatchString(line) {
+		if regexp.MustCompile(regex).MatchString(line) {
 			return true
 		}
 	}
@@ -183,7 +208,7 @@ func boolPtr(b bool) *bool {
 }
 
 func getFileContent(filename string) string {
-	file, err := os.Open("../template/" + filename)
+	file, err := os.Open(TEMPLATE_CHECKLIST_PATH + filename)
 	if err != nil {
 		fmt.Println(err)
 		return ""
