@@ -1,4 +1,4 @@
-module checklist
+module main
 
 go 1.20
 

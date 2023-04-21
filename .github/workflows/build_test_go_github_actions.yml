@@ -24,7 +24,7 @@ jobs:
     - name: "Build"
       run: cd ./.github/go/ && go build -v
     - name: "Test"
-      run: cd ./.github/go/ && go test -v
+      run: cd ./.github/go/ && go test -v *.go
 
   
     
