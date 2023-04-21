@@ -74,7 +74,7 @@ func main() {
 	checkList := initCheckList()
 
 	for _, checkListItem := range checkList {
-		if lineMatchesRegex(currentBody, regexp.MustCompile(*checkListItem.Title)) {
+		if lineMatchesRegex(currentBody, regexp.MustCompile(`^`+*checkListItem.Title+`.*$`)) {
 			// check if we need to remove the checklist
 			checklist_justify_presence := false
 			for _, filename := range filenames {
@@ -141,7 +141,7 @@ func getDiffFiles(client *github.Client, ctx context.Context, owner string, repo
 
 	var filenames []string
 	for _, file := range files {
-		fmt.Println(*file.ContentsURL)
+		fmt.Println(file.GetRawURL())
 		filenames = append(filenames, *file.Filename)
 	}
 
