@@ -73,6 +73,18 @@ func main() {
 		panic(err)
 	}
 
+	path, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(path) // for example /home/user
+
+	path, err = os.Executable()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(path)
+
 	// Makes the changes
 	for _, checkListItem := range allCheckLists {
 		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
