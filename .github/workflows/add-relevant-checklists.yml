@@ -24,4 +24,4 @@ jobs:
         PR_NUMBER: ${{ github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/actions/ && go run add-relevant-checklists/main.go 
+      run: go run ./.github/actions/add-relevant-checklists/main.go 
