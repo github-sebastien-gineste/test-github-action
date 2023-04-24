@@ -199,9 +199,9 @@ func updatePRBody(client *github.Client, ctx context.Context, owner string, repo
 }
 
 func getFirstLine(filename string) (string, error) {
-	file, err := os.Open(filename)
+	file, err := os.Open(TEMPLATE_CHECKLIST_PATH + filename)
 	if err != nil {
-		return "", err
+		return "", errors.New("The file " + TEMPLATE_CHECKLIST_PATH + filename + " does not exist")
 	}
 	defer file.Close()
 

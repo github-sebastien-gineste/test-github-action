@@ -6,15 +6,14 @@ import (
 )
 
 func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []string, allCheckListFilesNameNeeded []string) (string, string) {
-	allCheckList := initAllCheckList()
 	updatedPRBody := prStartBody
 
 	// Got
-	for _, checkListItem := range allCheckList {
-		updatedPRBodyWithThisItem, err := manageCheckListItem(updatedPRBody, checkListItem, diffFilenames)
+	for _, checkListItem := range allCheckLists {
+		updatedPRBodyWithThisItem, err := syncCheckList(updatedPRBody, checkListItem, diffFilenames)
 		updatedPRBody = updatedPRBodyWithThisItem
 		if err != nil {
-			t.Error("Checklist item file is empty for the filename :", *checkListItem.Filename)
+			t.Error("Checklist item file is empty :", err)
 		}
 	}
 
@@ -23,7 +22,7 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 	for _, filename := range allCheckListFilesNameNeeded {
 		content, err := getFileContent(filename)
 		if err != nil {
-			t.Error("Checklist item file is empty for the filename :", filename)
+			t.Error("Checklist item file is empty :", err)
 		}
 		newBodyPRContent += "\n" + content
 	}
@@ -35,14 +34,13 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 }
 
 func TestAllCheckListPresence(t *testing.T) {
-	allCheckList := initAllCheckList()
-	for _, checkListItem := range allCheckList {
-		if checkListItem.Filename == nil || checkListItem.Title == nil || checkListItem.RegexDiffFiles == nil {
+	for _, checkListItem := range allCheckLists {
+		if checkListItem.Filename == "" || checkListItem.RegexDiffFiles == nil {
 			t.Error("Checklist item is not complete")
 		} else {
-			_, err := getFileContent(*checkListItem.Filename)
+			_, err := getFileContent(checkListItem.Filename)
 			if err != nil {
-				t.Error("Checklist item file is empty for the filename :", *checkListItem.Filename)
+				t.Error("Checklist item file is empty for the filename :", checkListItem.Filename)
 			}
 		}
 	}
@@ -80,12 +78,12 @@ func TestRemovingProtoCheckList(t *testing.T) {
 	diffFilenames := []string{"test.txt", "test2.txt", "domains/User.scala"}
 	allCheckListFilesNameNeeded := []string{}
 
-	protoCheckListItem := initAllCheckList()[0]
-	if !strings.Contains(*protoCheckListItem.RegexDiffFiles, ".proto") {
-		t.Error("Proto checklist item is not the first one, there is ", *protoCheckListItem.Filename, " in its place")
+	protoCheckListItem := allCheckLists[0]
+	if !strings.Contains(protoCheckListItem.RegexDiffFiles.String(), ".proto") {
+		t.Error("Proto checklist item is not the first one, there is ", protoCheckListItem.Filename, " in its place")
 	}
 
-	contentProto, err := getFileContent(*protoCheckListItem.Filename)
+	contentProto, err := getFileContent(protoCheckListItem.Filename)
 	if err != nil {
 		t.Error("Checklist item file is empty for the filename :", protoCheckListItem.Filename)
 	}
@@ -97,7 +95,8 @@ func TestRemovingProtoCheckList(t *testing.T) {
 	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
 
 	// remove the proto checklist in the want
-	want = removeCheckList(want, protoCheckListItem)
+	protoTitle := strings.Split(contentProto, "\n")[0]
+	want = removeCheckList(want, protoCheckListItem, protoTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
@@ -108,12 +107,12 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 	diffFilenames := []string{"test.txt", "test2.proto", "domains/User.scala"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
 
-	sqlCheckListItem := initAllCheckList()[4]
-	if !strings.Contains(*sqlCheckListItem.RegexDiffFiles, ".sql") {
-		t.Error("SQL checklist item is not in the 4th index, there is ", *sqlCheckListItem.Filename, " in its place")
+	sqlCheckListItem := allCheckLists[4]
+	if !strings.Contains(sqlCheckListItem.RegexDiffFiles.String(), ".sql") {
+		t.Error("SQL checklist item is not in the 4th index, there is ", sqlCheckListItem.Filename, " in its place")
 	}
 
-	contentSQL, err := getFileContent(*sqlCheckListItem.Filename)
+	contentSQL, err := getFileContent(sqlCheckListItem.Filename)
 	if err != nil {
 		t.Error("Checklist item file is empty for the filename :", sqlCheckListItem.Filename)
 	}
@@ -125,7 +124,8 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
 
 	// remove the sql checklist in the want
-	want = removeCheckList(want, sqlCheckListItem)
+	sqlTitle := strings.Split(contentSQL, "\n")[0]
+	want = removeCheckList(want, sqlCheckListItem, sqlTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
