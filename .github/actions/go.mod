@@ -1,4 +1,4 @@
-module go
+module actions
 
 go 1.20
 
