@@ -22,6 +22,8 @@ jobs:
       with:
          go-version: ${{ env.GO_VERSION }}
          cache-dependency-path: .github/actions/go.sum
+    - name: "work"
+      run: set GOWORK=$PWD/go.work
     - name: "fefds"
       run: go env
     - name: "Build"
