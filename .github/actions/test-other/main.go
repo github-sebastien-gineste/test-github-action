@@ -52,48 +52,26 @@ var allCheckLists = []CheckList{
 	},
 }
 
+type PullRequestData struct {
+	prNumber int
+	owner    string
+	repo     string
+	pr       *github.PullRequest
+}
+
 func main() {
 	ctx := context.Background()
 	client := connectClient(ctx)
 
-	// Retrieve information from the Pull Request
-	prNumberStr := os.Getenv(PR_NUMBER)
-	prNumber, err := strconv.Atoi(prNumberStr)
-	owner := os.Getenv(OWNER)
-	repo := os.Getenv(REPO)
-	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	prData := getPullRequestData(client, ctx)
+
+	updatedPRBody, err := syncCheckLists(client, ctx, prData)
 	if err != nil {
-		fmt.Println(err, "Error while retrieving the PR informations")
-		panic(err)
-	}
-	currentPRBody := pr.GetBody()
-	filenames, err := getDiffFilesNames(client, ctx, owner, repo, prNumber)
-	if err != nil {
-		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		fmt.Println(err, "Error while synchronising the checklists")
 		panic(err)
 	}
 
-	path, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(path) // for example /home/user
-
-	path, err = os.Executable()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(path)
-
-	// Makes the changes
-	for _, checkListItem := range allCheckLists {
-		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
-		if err != nil {
-			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
-			panic(err)
-		}
-	}
-	err = updatePRBody(client, ctx, owner, repo, pr, currentPRBody)
+	err = updatePRBody(client, ctx, prData.owner, prData.repo, prData.pr, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
@@ -110,6 +88,28 @@ func connectClient(ctx context.Context) *github.Client {
 	return github.NewClient(tc)
 }
 
+func getPullRequestData(client *github.Client, ctx context.Context) PullRequestData {
+	prNumberStr := os.Getenv(PR_NUMBER)
+	prNumber, err := strconv.Atoi(prNumberStr)
+	if err != nil {
+		panic(err)
+	}
+	owner := os.Getenv(OWNER)
+	repo := os.Getenv(REPO)
+	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	if err != nil {
+		fmt.Println(err, "Error while retrieving the PR informations")
+		panic(err)
+	}
+
+	return PullRequestData{
+		prNumber: prNumber,
+		owner:    owner,
+		repo:     repo,
+		pr:       pr,
+	}
+}
+
 func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
 	files, _, err := client.PullRequests.ListFiles(ctx, owner, repo, prNumber, nil)
 	if err != nil {
@@ -121,6 +121,26 @@ func getDiffFilesNames(client *github.Client, ctx context.Context, owner string,
 		filenames = append(filenames, *file.Filename)
 	}
 	return filenames, nil
+}
+
+func syncCheckLists(client *github.Client, ctx context.Context, prData PullRequestData) (string, error) {
+	currentPRBody := prData.pr.GetBody()
+
+	filenames, err := getDiffFilesNames(client, ctx, prData.owner, prData.repo, prData.prNumber)
+	if err != nil {
+		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		return "", err
+	}
+
+	for _, checkListItem := range allCheckLists {
+		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
+		if err != nil {
+			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
+			return "", err
+		}
+	}
+
+	return currentPRBody, nil
 }
 
 func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, error) {
