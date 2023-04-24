@@ -24,7 +24,7 @@ jobs:
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
         TEST: ${{ steps.test.outputs.CHEKLIST }}
-      run: cd ./.github/go/ && go run add-relevant/hello.go 
+      run: go run ./.github/go/add-relevant/hello.go 
 
   
     
