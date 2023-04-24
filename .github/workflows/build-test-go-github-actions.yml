@@ -1,5 +1,8 @@
 name: Build and test Go github actions
 
+env: 
+  GO_VERSION: "1.20"
+
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
@@ -18,8 +21,8 @@ jobs:
     - name: Setup GO
       uses: actions/setup-go@v4
       with:
-         go-version: 'stable'
-         cache-dependency-path: .github/actions/go.sum
+        go-version: ${{ env.GO_VERSION }}
+        cache-dependency-path: .github/actions/go.sum
     - name: "Build"
       run: go build -v ./.github/actions/...
     - name: "Test"
