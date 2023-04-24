@@ -18,7 +18,7 @@ const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
 const GITHUB_TOKEN = "GITHUB_TOKEN"
-const TEMPLATE_CHECKLIST_PATH = "./templates/checklists/"
+const TEMPLATE_CHECKLIST_PATH = "../../templates/checklists/"
 
 const (
 	SearchCheckList StateRemoveCheckList = iota
@@ -72,6 +72,18 @@ func main() {
 		fmt.Println(err, "Error while retrieving the files diff of the PR")
 		panic(err)
 	}
+
+	path, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(path) // for example /home/user
+
+	path, err = os.Executable()
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(path)
 
 	// Makes the changes
 	for _, checkListItem := range allCheckLists {
