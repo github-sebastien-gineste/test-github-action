@@ -6,8 +6,6 @@ env:
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
-    branches-ignore:    
-      - 'main'
     paths:
       - '.github/actions/**'
       - '.github/templates/**'
