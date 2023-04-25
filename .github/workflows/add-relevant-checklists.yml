@@ -5,10 +5,11 @@ env:
 
 on:
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [ opened, synchronize, reopened, edited]
 
 jobs:
   checklists:
+    if: github.event.action != 'edited' # Don't run on edits to the PR body
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code
@@ -25,3 +26,22 @@ jobs:
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
       run: cd ./.github/actions/add-relevant-checklists && go run main.go 
+
+  checkbox:
+    runs-on: ubuntu-latest
+    needs: [checklists] # Only run after checklists has run
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache-dependency-path: .github/actions/go.sum
+    - name: Run
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
+      run: cd ./.github/actions/test-other && go run main.go 
