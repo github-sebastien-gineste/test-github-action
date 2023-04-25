@@ -6,6 +6,8 @@ env:
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
+    branches-ignore:   
+      - 'main'
 
 jobs:
   checklists:
