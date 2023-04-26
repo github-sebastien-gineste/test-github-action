@@ -18,7 +18,13 @@ const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
 const GITHUB_TOKEN = "GITHUB_TOKEN"
-const TEMPLATE_CHECKLIST_PATH = "./templates/checklists/"
+const TEMPLATE_CHECKLIST_PATH = "./templates/"
+
+const (
+	TO_BE_ADDED   = "ADDED"
+	TO_BE_IGNORED = "IGNORED"
+	TO_BE_REMOVED = "REMOVED"
+)
 
 const (
 	SearchCheckList StateRemoveCheckList = iota
@@ -54,41 +60,31 @@ var allCheckLists = []CheckList{
 	},
 }
 
+type PullRequestData struct {
+	prNumber int
+	owner    string
+	repo     string
+	pr       *github.PullRequest
+}
+
 func main() {
 	ctx := context.Background()
 	client := connectClient(ctx)
 
-	// Retrieve information from the Pull Request
-	prNumberStr := os.Getenv(PR_NUMBER)
-	prNumber, err := strconv.Atoi(prNumberStr)
-	owner := os.Getenv(OWNER)
-	repo := os.Getenv(REPO)
-	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	prData := getPullRequestData(client, ctx)
+
+	updatedPRBody, err := syncCheckLists(client, ctx, prData)
 	if err != nil {
-		fmt.Println(err, "Error while retrieving the PR informations")
-		panic(err)
-	}
-	currentPRBody := pr.GetBody()
-	filenames, err := getDiffFilesNames(client, ctx, owner, repo, prNumber)
-	if err != nil {
-		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		fmt.Println(err, "Error while synchronising the checklists")
 		panic(err)
 	}
 
-	// Makes the changes
-	for _, checkListItem := range allCheckLists {
-		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
-		if err != nil {
-			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
-			panic(err)
-		}
-	}
-	err = updatePRBody(client, ctx, owner, repo, pr, currentPRBody)
+	err = updatePRBody(client, ctx, prData.owner, prData.repo, prData.pr, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
-	fmt.Println("Done !")
+	fmt.Println("Body updated with success !")
 }
 
 func connectClient(ctx context.Context) *github.Client {
@@ -98,6 +94,28 @@ func connectClient(ctx context.Context) *github.Client {
 	)
 	tc := oauth2.NewClient(ctx, ts)
 	return github.NewClient(tc)
+}
+
+func getPullRequestData(client *github.Client, ctx context.Context) PullRequestData {
+	prNumberStr := os.Getenv(PR_NUMBER)
+	prNumber, err := strconv.Atoi(prNumberStr)
+	if err != nil {
+		panic(err)
+	}
+	owner := os.Getenv(OWNER)
+	repo := os.Getenv(REPO)
+	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	if err != nil {
+		fmt.Println(err, "Error while retrieving the PR informations")
+		panic(err)
+	}
+
+	return PullRequestData{
+		prNumber: prNumber,
+		owner:    owner,
+		repo:     repo,
+		pr:       pr,
+	}
 }
 
 func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
@@ -113,13 +131,37 @@ func getDiffFilesNames(client *github.Client, ctx context.Context, owner string,
 	return filenames, nil
 }
 
-const (
-	TO_BE_ADDED   = " => TO BE ADDED"
-	TO_BE_IGNORED = " => TO BE IGNORED"
-	TO_BE_REMOVED = " => TO BE REMOVED"
-)
+func syncCheckLists(client *github.Client, ctx context.Context, prData PullRequestData) (string, error) {
+	currentPRBody := prData.pr.GetBody()
+	filenames, err := getDiffFilesNames(client, ctx, prData.owner, prData.repo, prData.prNumber)
+	if err != nil {
+		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		return "", err
+	}
+	PlanLog := "Plan: \n"
+	ApplyLog := "Apply: \n"
+	log := ""
 
-func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision string) {
+	for _, checkListItem := range allCheckLists {
+		currentPRBody, log, err = syncCheckList(currentPRBody, checkListItem, filenames)
+		if err != nil {
+			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
+			return "", err
+		}
+		PlanLog += log + "\n"
+		if strings.Contains(log, "ADDED") {
+			ApplyLog += "- Adding checklist " + checkListItem.Filename + " \n"
+		} else if strings.Contains(log, "REMOVED") {
+			ApplyLog += "- Removing checklist " + checkListItem.Filename + " \n"
+		}
+	}
+
+	fmt.Println(PlanLog + "\n" + ApplyLog)
+
+	return currentPRBody, nil
+}
+
+func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision string) string {
 
 	logText := "- Checklist " + checkListItem.Filename + " : "
 
@@ -134,44 +176,34 @@ func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isCheckli
 		logText += "not present"
 	}
 
-	fmt.Println(logText + decision)
+	return logText + " => TO BE " + decision
 }
 
-func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, error) {
-	fmt.Println("Plan:")
-	applyLog := "Apply:\n"
-
+func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, string, error) {
 	checkListTitle, err := getFirstLine(checkListItem.Filename)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	isCheckListNeeded := isCheckListNeeded(checkListItem, filenames)
 	isChecklistAlreadyPresent := strings.Contains(prBody, checkListTitle)
 
-	if isChecklistAlreadyPresent {
-		if !isCheckListNeeded {
-			logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_REMOVED)
-			prBody = removeCheckList(prBody, checkListItem, checkListTitle)
-			applyLog += "- Removing checklist " + checkListItem.Filename + "\n"
-		} else {
-			logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
-		}
+	log := ""
 
-	} else if isCheckListNeeded {
-		logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_ADDED)
+	if isChecklistAlreadyPresent && !isCheckListNeeded {
+		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_REMOVED)
+		prBody = removeCheckList(prBody, checkListItem, checkListTitle)
+	} else if isCheckListNeeded && !isChecklistAlreadyPresent {
+		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_ADDED)
 		content, err := getFileContent(checkListItem.Filename)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		prBody += "\n" + content
-		applyLog += "- Adding checklist " + checkListItem.Filename + "\n"
 	} else {
-		logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
+		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
 	}
 
-	fmt.Println(applyLog)
-
-	return prBody, nil
+	return prBody, log, nil
 }
 
 func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {

@@ -10,7 +10,7 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 
 	// Got
 	for _, checkListItem := range allCheckLists {
-		updatedPRBodyWithThisItem, err := syncCheckList(updatedPRBody, checkListItem, diffFilenames)
+		updatedPRBodyWithThisItem, _, err := syncCheckList(updatedPRBody, checkListItem, diffFilenames)
 		updatedPRBody = updatedPRBodyWithThisItem
 		if err != nil {
 			t.Error("Checklist item file is empty :", err)
