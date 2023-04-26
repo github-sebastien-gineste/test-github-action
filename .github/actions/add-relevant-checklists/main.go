@@ -45,7 +45,7 @@ var allCheckLists = []CheckList{
 		RegexDiffFiles: regexp.MustCompile(`\.conf$`),
 	}, {
 		Filename:       "production_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`^api-domains.conf$`),
+		RegexDiffFiles: regexp.MustCompile(`api-domains.conf$`),
 	}, {
 		Filename:       "sql_migration_checklist.md",
 		RegexDiffFiles: regexp.MustCompile(`\.sql$`),
