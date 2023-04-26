@@ -29,8 +29,9 @@ const (
 type StateRemoveCheckList int64
 
 type CheckList struct {
-	Filename       string
-	RegexDiffFiles *regexp.Regexp
+	Filename              string
+	RegexDiffFiles        *regexp.Regexp
+	RegexNegatifDiffFiles *regexp.Regexp
 }
 
 var allCheckLists = []CheckList{
@@ -41,8 +42,9 @@ var allCheckLists = []CheckList{
 		Filename:       "implementation_rpc_checklist.md",
 		RegexDiffFiles: regexp.MustCompile(`Handler\.scala$`),
 	}, {
-		Filename:       "development_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.conf$`),
+		Filename:              "development_conf_checklist.md",
+		RegexDiffFiles:        regexp.MustCompile(`\.conf$`),
+		RegexNegatifDiffFiles: regexp.MustCompile(`api-domains.conf$`),
 	}, {
 		Filename:       "production_conf_checklist.md",
 		RegexDiffFiles: regexp.MustCompile(`api-domains.conf$`),
@@ -73,18 +75,6 @@ func main() {
 		panic(err)
 	}
 
-	path, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(path) // for example /home/user
-
-	path, err = os.Executable()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(path)
-
 	// Makes the changes
 	for _, checkListItem := range allCheckLists {
 		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
@@ -98,7 +88,7 @@ func main() {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
-	fmt.Println("Body updated with success !")
+	fmt.Println("Done !")
 }
 
 func connectClient(ctx context.Context) *github.Client {
@@ -123,7 +113,34 @@ func getDiffFilesNames(client *github.Client, ctx context.Context, owner string,
 	return filenames, nil
 }
 
+const (
+	TO_BE_ADDED   = " => TO BE ADDED"
+	TO_BE_IGNORED = " => TO BE IGNORED"
+	TO_BE_REMOVED = " => TO BE REMOVED"
+)
+
+func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision string) {
+
+	logText := "- Checklist " + checkListItem.Filename + " : "
+
+	if isCheckListNeeded {
+		logText += "needed and "
+	} else {
+		logText += "not needed and "
+	}
+	if isChecklistAlreadyPresent {
+		logText += "present"
+	} else {
+		logText += "not present"
+	}
+
+	fmt.Println(logText + decision)
+}
+
 func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, error) {
+	fmt.Println("Plan:")
+	applyLog := "Apply:\n"
+
 	checkListTitle, err := getFirstLine(checkListItem.Filename)
 	if err != nil {
 		return "", err
@@ -133,15 +150,26 @@ func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (
 
 	if isChecklistAlreadyPresent {
 		if !isCheckListNeeded {
+			logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_REMOVED)
 			prBody = removeCheckList(prBody, checkListItem, checkListTitle)
+			applyLog += "- Removing checklist " + checkListItem.Filename + "\n"
+		} else {
+			logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
 		}
+
 	} else if isCheckListNeeded {
+		logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_ADDED)
 		content, err := getFileContent(checkListItem.Filename)
 		if err != nil {
 			return "", err
 		}
 		prBody += "\n" + content
+		applyLog += "- Adding checklist " + checkListItem.Filename + "\n"
+	} else {
+		logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
 	}
+
+	fmt.Println(applyLog)
 
 	return prBody, nil
 }
@@ -150,6 +178,9 @@ func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 	isCheckListNeeded := false
 	for _, filename := range filenames {
 		if checkListItem.RegexDiffFiles.MatchString(filename) {
+			if checkListItem.RegexNegatifDiffFiles != nil && checkListItem.RegexNegatifDiffFiles.MatchString(filename) {
+				continue
+			}
 			isCheckListNeeded = true
 			break
 		}
