@@ -18,7 +18,7 @@ const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
 const GITHUB_TOKEN = "GITHUB_TOKEN"
-const TEMPLATE_CHECKLIST_PATH = "../../templates/checklists/"
+const TEMPLATE_CHECKLIST_PATH = "./templates/checklists/"
 
 const (
 	SearchCheckList StateRemoveCheckList = iota
