@@ -13,7 +13,7 @@ import (
 	"github.com/google/go-github/github"
 )
 
-const TEMPLATE_CHECKLIST_PATH = "./templfates/"
+const TEMPLATE_CHECKLIST_PATH = "./templates/"
 
 const (
 	TO_BE_ADDED   = "ADDED"
