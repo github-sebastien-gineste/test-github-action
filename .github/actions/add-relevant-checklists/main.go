@@ -157,7 +157,7 @@ func syncCheckLists(client *github.Client, ctx context.Context, prData PullReque
 	}
 
 	if ApplyLog == "Apply: \n" {
-		ApplyLog = "Apply: \n Nothing to do"
+		ApplyLog = "Apply: \nNothing to do\n"
 	}
 
 	fmt.Println(PlanLog + "\n" + ApplyLog)
