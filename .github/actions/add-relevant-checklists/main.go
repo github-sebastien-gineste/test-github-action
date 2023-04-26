@@ -8,18 +8,12 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
 )
 
-const PR_NUMBER = "PR_NUMBER"
-const OWNER = "OWNER"
-const REPO = "REPO"
-const GITHUB_TOKEN = "GITHUB_TOKEN"
-const TEMPLATE_CHECKLIST_PATH = "./templates/"
+const TEMPLATE_CHECKLIST_PATH = "./templfates/"
 
 const (
 	TO_BE_ADDED   = "ADDED"
@@ -61,18 +55,11 @@ var allCheckLists = []CheckList{
 	},
 }
 
-type PullRequestData struct {
-	prNumber int
-	owner    string
-	repo     string
-	pr       *github.PullRequest
-}
-
 func main() {
 
 	client, ctx := commons.ConnectClient()
 
-	prData := getPullRequestData(client, ctx)
+	prData := commons.GetPullRequestData(client, ctx)
 
 	updatedPRBody, err := syncCheckLists(client, ctx, prData)
 	if err != nil {
@@ -80,43 +67,12 @@ func main() {
 		panic(err)
 	}
 
-	err = updatePRBody(client, ctx, prData.owner, prData.repo, prData.pr, updatedPRBody)
+	err = updatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
 	fmt.Println("Body updated with success !")
-}
-
-func connectClient(ctx context.Context) *github.Client {
-	token := os.Getenv(GITHUB_TOKEN)
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	return github.NewClient(tc)
-}
-
-func getPullRequestData(client *github.Client, ctx context.Context) PullRequestData {
-	prNumberStr := os.Getenv(PR_NUMBER)
-	prNumber, err := strconv.Atoi(prNumberStr)
-	if err != nil {
-		panic(err)
-	}
-	owner := os.Getenv(OWNER)
-	repo := os.Getenv(REPO)
-	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
-	if err != nil {
-		fmt.Println(err, "Error while retrieving the PR informations")
-		panic(err)
-	}
-
-	return PullRequestData{
-		prNumber: prNumber,
-		owner:    owner,
-		repo:     repo,
-		pr:       pr,
-	}
 }
 
 func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
@@ -132,9 +88,9 @@ func getDiffFilesNames(client *github.Client, ctx context.Context, owner string,
 	return filenames, nil
 }
 
-func syncCheckLists(client *github.Client, ctx context.Context, prData PullRequestData) (string, error) {
-	currentPRBody := prData.pr.GetBody()
-	filenames, err := getDiffFilesNames(client, ctx, prData.owner, prData.repo, prData.prNumber)
+func syncCheckLists(client *github.Client, ctx context.Context, prData commons.PullRequestData) (string, error) {
+	currentPRBody := prData.PR.GetBody()
+	filenames, err := getDiffFilesNames(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
 	if err != nil {
 		fmt.Println(err, "Error while retrieving the files diff of the PR")
 		return "", err
