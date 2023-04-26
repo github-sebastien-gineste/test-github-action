@@ -8,7 +8,7 @@ on:
     types: [ opened, synchronize, reopened, edited]
 
 jobs:
-  checklists-management::
+  checklists-management:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code
