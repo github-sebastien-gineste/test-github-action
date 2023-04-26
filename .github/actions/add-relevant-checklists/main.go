@@ -1,6 +1,7 @@
 package main
 
 import (
+	"actions/commons"
 	"bufio"
 	"context"
 	"errors"
@@ -68,8 +69,8 @@ type PullRequestData struct {
 }
 
 func main() {
-	ctx := context.Background()
-	client := connectClient(ctx)
+
+	client, ctx := commons.ConnectClient()
 
 	prData := getPullRequestData(client, ctx)
 

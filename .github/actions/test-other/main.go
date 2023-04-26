@@ -26,7 +26,7 @@ type PullRequestData struct {
 
 func main() {
 	ctx := context.Background()
-	client := connectClient(ctx)
+	client := ConnectClient(ctx)
 
 	prData := getPullRequestData(client, ctx)
 
@@ -41,7 +41,7 @@ func isContainsUncheckedCheckBox(prBody string) bool {
 	return strings.Contains(prBody, CHECKBOX)
 }
 
-func connectClient(ctx context.Context) *github.Client {
+func ConnectClient(ctx context.Context) *github.Client {
 	token := os.Getenv(GITHUB_TOKEN)
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
