@@ -15,11 +15,19 @@ import (
 
 const TEMPLATE_CHECKLIST_PATH = "./templates/"
 
-const (
-	TO_BE_ADDED   = "ADDED"
-	TO_BE_IGNORED = "IGNORED"
-	TO_BE_REMOVED = "REMOVED"
-)
+type CheckList struct {
+	Filename              string
+	RegexDiffFiles        *regexp.Regexp
+	RegexNegatifDiffFiles *regexp.Regexp
+}
+
+type CheckListPlan struct {
+	Filename string
+	Title    string
+	Action   PlanAction
+}
+
+type StateRemoveCheckList int64
 
 const (
 	SearchCheckList StateRemoveCheckList = iota
@@ -27,13 +35,13 @@ const (
 	CopyRest
 )
 
-type StateRemoveCheckList int64
+type PlanAction string
 
-type CheckList struct {
-	Filename              string
-	RegexDiffFiles        *regexp.Regexp
-	RegexNegatifDiffFiles *regexp.Regexp
-}
+const (
+	ADDED   PlanAction = "ADDED"
+	IGNORED PlanAction = "IGNORED"
+	REMOVED PlanAction = "REMOVED"
+)
 
 var allCheckLists = []CheckList{
 	{
@@ -72,6 +80,7 @@ func main() {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
+
 	fmt.Println("Body updated with success !")
 }
 
@@ -95,34 +104,65 @@ func syncCheckLists(client *github.Client, ctx context.Context, prData commons.P
 		fmt.Println(err, "Error while retrieving the files diff of the PR")
 		return "", err
 	}
-	PlanLog := "Plan: \n"
-	ApplyLog := "Apply: \n"
-	log := ""
 
-	for _, checkListItem := range allCheckLists {
-		currentPRBody, log, err = syncCheckList(currentPRBody, checkListItem, filenames)
-		if err != nil {
-			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
-			return "", err
-		}
-		PlanLog += log + "\n"
-		if strings.Contains(log, "ADDED") {
-			ApplyLog += "- Adding checklist " + checkListItem.Filename + " \n"
-		} else if strings.Contains(log, "REMOVED") {
-			ApplyLog += "- Removing checklist " + checkListItem.Filename + " \n"
-		}
+	CheckListsPlan, err := getPlanCheckLists(currentPRBody, filenames, false)
+	if err != nil {
+		fmt.Println(err, "Error while getting the plan of the checklists")
+		return "", err
 	}
 
-	if ApplyLog == "Apply: \n" {
-		ApplyLog = "Apply: \nNothing to do\n"
+	currentPRBody, err = applyPlanCheckLists(currentPRBody, CheckListsPlan, false)
+	if err != nil {
+		fmt.Println(err, "Error while synchronising the checklists")
+		return "", err
 	}
-
-	fmt.Println(PlanLog + "\n" + ApplyLog)
 
 	return currentPRBody, nil
 }
 
-func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision string) string {
+func getPlanCheckLists(currentPRBody string, filenames []string, ignoreLog bool) ([]CheckListPlan, error) {
+	if !ignoreLog {
+		fmt.Println("Plan:")
+	}
+
+	var CheckListsPlan = []CheckListPlan{}
+
+	for _, checkListItem := range allCheckLists {
+		checkListItemPlan, err := getPlanCheckList(currentPRBody, checkListItem, filenames, ignoreLog)
+		if err != nil {
+			fmt.Println(err, "Error while getting the plan of the checklist item "+checkListItem.Filename)
+			return []CheckListPlan{}, err
+		}
+		CheckListsPlan = append(CheckListsPlan, checkListItemPlan)
+	}
+
+	return CheckListsPlan, nil
+}
+
+func getPlanCheckList(prBody string, checkListItem CheckList, filenames []string, ignoreLog bool) (CheckListPlan, error) {
+	checkListTitle, err := getFirstLine(checkListItem.Filename)
+	if err != nil {
+		return CheckListPlan{}, err
+	}
+	isCheckListNeeded := isCheckListNeeded(checkListItem, filenames)
+	isChecklistAlreadyPresent := strings.Contains(prBody, checkListTitle)
+
+	if isChecklistAlreadyPresent && !isCheckListNeeded {
+		printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, REMOVED, ignoreLog)
+		return CheckListPlan{checkListTitle, checkListTitle, REMOVED}, nil
+	} else if isCheckListNeeded && !isChecklistAlreadyPresent {
+		printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, ADDED, ignoreLog)
+		return CheckListPlan{checkListItem.Filename, "", ADDED}, nil
+	} else {
+		printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, IGNORED, ignoreLog)
+		return CheckListPlan{checkListItem.Filename, "", IGNORED}, nil
+	}
+}
+
+func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision PlanAction, ignoreLog bool) {
+	if ignoreLog {
+		return
+	}
 
 	logText := "- Checklist " + checkListItem.Filename + " : "
 
@@ -137,34 +177,7 @@ func logPlanCheckList(checkListItem CheckList, isCheckListNeeded bool, isCheckli
 		logText += "not present"
 	}
 
-	return logText + " => TO BE " + decision
-}
-
-func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, string, error) {
-	checkListTitle, err := getFirstLine(checkListItem.Filename)
-	if err != nil {
-		return "", "", err
-	}
-	isCheckListNeeded := isCheckListNeeded(checkListItem, filenames)
-	isChecklistAlreadyPresent := strings.Contains(prBody, checkListTitle)
-
-	log := ""
-
-	if isChecklistAlreadyPresent && !isCheckListNeeded {
-		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_REMOVED)
-		prBody = removeCheckList(prBody, checkListItem, checkListTitle)
-	} else if isCheckListNeeded && !isChecklistAlreadyPresent {
-		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_ADDED)
-		content, err := getFileContent(checkListItem.Filename)
-		if err != nil {
-			return "", "", err
-		}
-		prBody += "\n" + content
-	} else {
-		log = logPlanCheckList(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, TO_BE_IGNORED)
-	}
-
-	return prBody, log, nil
+	fmt.Println(logText + " => TO BE " + string(decision))
 }
 
 func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
@@ -181,7 +194,56 @@ func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 	return isCheckListNeeded
 }
 
-func removeCheckList(prbody string, checkListItem CheckList, checkListTitle string) string {
+func applyPlanCheckLists(prBody string, checkListsPlan []CheckListPlan, ignoreLog bool) (string, error) {
+	if !ignoreLog {
+		fmt.Println("Apply:")
+	}
+	prBodyUpdated := prBody
+	nbIgnored := 0
+
+	for _, checkListItemPlan := range checkListsPlan {
+		switch checkListItemPlan.Action {
+		case ADDED:
+			if !ignoreLog {
+				fmt.Println("- Adding checklist " + checkListItemPlan.Filename)
+			}
+			newBody, err := addCheckList(prBodyUpdated, checkListItemPlan.Filename)
+			if err != nil {
+				fmt.Println(err, "Error while adding the checklist item "+checkListItemPlan.Filename)
+				return "", err
+			}
+			prBodyUpdated = newBody
+		case REMOVED:
+			if !ignoreLog {
+				fmt.Println("- Removing checklist " + checkListItemPlan.Filename)
+			}
+			prBodyUpdated = removeCheckList(prBodyUpdated, checkListItemPlan.Title)
+		case IGNORED:
+			nbIgnored++
+			if !ignoreLog {
+				fmt.Println("- Ignoring checklist " + checkListItemPlan.Filename)
+			}
+		default:
+			return "", errors.New("Unknown action " + string(checkListItemPlan.Action))
+		}
+	}
+
+	if nbIgnored == len(checkListsPlan) && !ignoreLog {
+		fmt.Println("Nothing to do")
+	}
+
+	return prBodyUpdated, nil
+}
+
+func addCheckList(prBody string, filename string) (string, error) {
+	content, err := getFileContent(filename)
+	if err != nil {
+		return "", err
+	}
+	return prBody + "\n" + content, nil
+}
+
+func removeCheckList(prbody string, checkListTitle string) string {
 	newBody := ""
 	stateRemoveCheckList := SearchCheckList
 	for _, line := range strings.Split(prbody, "\n") {

@@ -9,12 +9,14 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 	updatedPRBody := prStartBody
 
 	// Got
-	for _, checkListItem := range allCheckLists {
-		updatedPRBodyWithThisItem, _, err := syncCheckList(updatedPRBody, checkListItem, diffFilenames)
-		updatedPRBody = updatedPRBodyWithThisItem
-		if err != nil {
-			t.Error("Checklist item file is empty :", err)
-		}
+	CheckListsPlan, err := getPlanCheckLists(updatedPRBody, diffFilenames, true)
+	if err != nil {
+		t.Error("Error while getting the plan of the checklists :", err)
+	}
+
+	updatedPRBody, err = applyPlanCheckLists(updatedPRBody, CheckListsPlan, true)
+	if err != nil {
+		t.Error("Error while synchronising the checklists : ", err)
 	}
 
 	// Want
@@ -96,7 +98,7 @@ func TestRemovingProtoCheckList(t *testing.T) {
 
 	// remove the proto checklist in the want
 	protoTitle := strings.Split(contentProto, "\n")[0]
-	want = removeCheckList(want, protoCheckListItem, protoTitle)
+	want = removeCheckList(want, protoTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
@@ -125,7 +127,7 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 
 	// remove the sql checklist in the want
 	sqlTitle := strings.Split(contentSQL, "\n")[0]
-	want = removeCheckList(want, sqlCheckListItem, sqlTitle)
+	want = removeCheckList(want, sqlTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
