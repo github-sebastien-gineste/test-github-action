@@ -149,7 +149,7 @@ func getPlanCheckList(prBody string, checkListItem CheckList, filenames []string
 
 	if isChecklistAlreadyPresent && !isCheckListNeeded {
 		printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, REMOVED, ignoreLog)
-		return CheckListPlan{checkListTitle, checkListTitle, REMOVED}, nil
+		return CheckListPlan{checkListItem.Filename, checkListTitle, REMOVED}, nil
 	} else if isCheckListNeeded && !isChecklistAlreadyPresent {
 		printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, ADDED, ignoreLog)
 		return CheckListPlan{checkListItem.Filename, "", ADDED}, nil
@@ -196,7 +196,7 @@ func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 
 func applyPlanCheckLists(prBody string, checkListsPlan []CheckListPlan, ignoreLog bool) (string, error) {
 	if !ignoreLog {
-		fmt.Println("Apply:")
+		fmt.Println("\nApply:")
 	}
 	prBodyUpdated := prBody
 	nbIgnored := 0
@@ -220,9 +220,6 @@ func applyPlanCheckLists(prBody string, checkListsPlan []CheckListPlan, ignoreLo
 			prBodyUpdated = removeCheckList(prBodyUpdated, checkListItemPlan.Title)
 		case IGNORED:
 			nbIgnored++
-			if !ignoreLog {
-				fmt.Println("- Ignoring checklist " + checkListItemPlan.Filename)
-			}
 		default:
 			return "", errors.New("Unknown action " + string(checkListItemPlan.Action))
 		}
