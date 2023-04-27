@@ -75,13 +75,18 @@ func main() {
 		panic(err)
 	}
 
+	if updatedPRBody == prData.PR.GetBody() {
+		fmt.Println("\nNo changes to the PR body")
+		return
+	}
+
 	err = updatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
 
-	fmt.Println("Body updated with success !")
+	fmt.Println("\nBody updated with success !")
 }
 
 func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
