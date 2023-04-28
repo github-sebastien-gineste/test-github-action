@@ -16,13 +16,13 @@ func main() {
 	prbody := prData.PR.GetBody()
 
 	fmt.Println("Search for unchecked checkboxes...")
-	uncheckedCheckboxeLines := findUncheckedCheckboxes(prbody)
+	uncheckedCheckboxes := findUncheckedCheckboxes(prbody)
 
-	for _, uncheckedCheckboxeLine := range uncheckedCheckboxeLines {
-		fmt.Println("  " + uncheckedCheckboxeLine)
+	for _, uncheckedCheckboxe := range uncheckedCheckboxes {
+		fmt.Println("  " + uncheckedCheckboxe)
 	}
 
-	if len(uncheckedCheckboxeLines) > 0 {
+	if len(uncheckedCheckboxes) > 0 {
 		panic("PR body contains unchecked checklist")
 	}
 
@@ -31,13 +31,13 @@ func main() {
 
 func findUncheckedCheckboxes(prBody string) []string {
 	lines := strings.Split(prBody, "\n")
-	uncheckedCheckboxeLines := []string{}
+	uncheckedCheckboxes := []string{}
 
 	for _, line := range lines {
 		if strings.Contains(line, CHECKBOX) {
-			uncheckedCheckboxeLines = append(uncheckedCheckboxeLines, line)
+			uncheckedCheckboxes = append(uncheckedCheckboxes, line)
 		}
 	}
 
-	return uncheckedCheckboxeLines
+	return uncheckedCheckboxes
 }
