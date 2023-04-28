@@ -9,12 +9,12 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 	updatedPRBody := prStartBody
 
 	// Got
-	checkListsPlan, err := getPlanCheckLists(updatedPRBody, diffFilenames, true)
+	checkListsPlan, err := getCheckListsPlan(updatedPRBody, diffFilenames, true)
 	if err != nil {
 		t.Error("Error while getting the plan of the checklists :", err)
 	}
 
-	updatedPRBody, err = applyPlanCheckLists(updatedPRBody, checkListsPlan, true)
+	updatedPRBody, err = applyCheckListsPlan(updatedPRBody, checkListsPlan, true)
 	if err != nil {
 		t.Error("Error while synchronising the checklists : ", err)
 	}

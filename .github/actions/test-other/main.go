@@ -14,29 +14,30 @@ func main() {
 	prData := github.GetPullRequestData(client, ctx)
 
 	prbody := prData.PR.GetBody()
-	if isContainsUncheckedCheckBox(prbody, false) {
+
+	fmt.Println("Search for unchecked checkboxes...")
+	uncheckedCheckboxeLines := findUncheckedCheckboxes(prbody)
+
+	for _, uncheckedCheckboxeLine := range uncheckedCheckboxeLines {
+		fmt.Println("  " + uncheckedCheckboxeLine)
+	}
+
+	if len(uncheckedCheckboxeLines) > 0 {
 		panic("PR body contains unchecked checklist")
 	}
 
 	fmt.Println("\nPR body does not contain unchecked checklist")
 }
 
-func isContainsUncheckedCheckBox(prBody string, ignoreLog bool) bool {
+func findUncheckedCheckboxes(prBody string) []string {
 	lines := strings.Split(prBody, "\n")
-	isContainsUncheckedCheckBox := false
-
-	if !ignoreLog {
-		fmt.Println("Search for unchecked checkboxes...")
-	}
+	uncheckedCheckboxeLines := []string{}
 
 	for _, line := range lines {
 		if strings.Contains(line, CHECKBOX) {
-			if !ignoreLog {
-				fmt.Println("  " + line)
-			}
-			isContainsUncheckedCheckBox = true
+			uncheckedCheckboxeLines = append(uncheckedCheckboxeLines, line)
 		}
 	}
 
-	return isContainsUncheckedCheckBox
+	return uncheckedCheckboxeLines
 }

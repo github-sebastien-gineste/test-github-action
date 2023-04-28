@@ -15,6 +15,8 @@ const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
 
+type GithubClient github.Client
+
 type PullRequestData struct {
 	PRNumber int
 	Owner    string
@@ -22,7 +24,7 @@ type PullRequestData struct {
 	PR       *github.PullRequest
 }
 
-func ConnectClient() (*github.Client, context.Context) {
+func ConnectClient() (*GithubClient, context.Context) {
 	ctx := context.Background()
 
 	token := os.Getenv(GITHUB_TOKEN)
@@ -30,10 +32,13 @@ func ConnectClient() (*github.Client, context.Context) {
 		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(ctx, ts)
-	return github.NewClient(tc), ctx
+
+	githubClient := GithubClient(*github.NewClient(tc))
+
+	return &githubClient, ctx
 }
 
-func GetPullRequestData(client *github.Client, ctx context.Context) PullRequestData {
+func GetPullRequestData(client *GithubClient, ctx context.Context) PullRequestData {
 	prNumberStr := os.Getenv(PR_NUMBER)
 	prNumber, err := strconv.Atoi(prNumberStr)
 	if err != nil {
@@ -53,4 +58,44 @@ func GetPullRequestData(client *github.Client, ctx context.Context) PullRequestD
 		Repo:     repo,
 		PR:       pr,
 	}
+}
+
+func GetDiffFilesNames(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
+	opt := &github.ListOptions{
+		PerPage: 100,
+	}
+	var filenames []string
+
+	for {
+		files, response, err := client.PullRequests.ListFiles(ctx, owner, repo, prNumber, opt)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, file := range files {
+			filenames = append(filenames, *file.Filename)
+		}
+
+		if response.NextPage == 0 {
+			break
+		}
+		opt.Page = response.NextPage
+	}
+
+	return filenames, nil
+}
+
+func UpdatePRBody(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest, newbody string) error {
+	updatedPR := &github.PullRequest{
+		Title: pr.Title,
+		Body:  github.String(newbody),
+		State: pr.State,
+		Base:  pr.Base,
+	}
+
+	_, _, err := client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), updatedPR)
+	if err != nil {
+		return err
+	}
+	return nil
 }

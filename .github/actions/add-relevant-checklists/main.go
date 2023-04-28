@@ -1,7 +1,7 @@
 package main
 
 import (
-	githubHelper "actions/commons/github"
+	"actions/commons/github"
 	"bufio"
 	"context"
 	"errors"
@@ -9,8 +9,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/google/go-github/github"
 )
 
 const TEMPLATE_CHECKLIST_PATH = "./templates/"
@@ -53,10 +51,10 @@ var allCheckLists = []CheckList{
 	}, {
 		Filename:              "development_conf_checklist.md",
 		RegexDiffFiles:        regexp.MustCompile(`\.conf$`),
-		RegexNegatifDiffFiles: regexp.MustCompile(`(api-domains.conf|api-domains-migrations.conf)$`),
+		RegexNegatifDiffFiles: regexp.MustCompile(`(api-domains\.conf|api-domains-migrations\.conf)$`),
 	}, {
 		Filename:       "production_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`(.*_bakery.*)|(api-domains.conf|api-domains-migrations.conf)$`),
+		RegexDiffFiles: regexp.MustCompile(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`),
 	}, {
 		Filename:       "sql_migration_checklist.md",
 		RegexDiffFiles: regexp.MustCompile(`\.sql$`),
@@ -65,9 +63,9 @@ var allCheckLists = []CheckList{
 
 func main() {
 
-	client, ctx := githubHelper.ConnectClient()
+	client, ctx := github.ConnectClient()
 
-	prData := githubHelper.GetPullRequestData(client, ctx)
+	prData := github.GetPullRequestData(client, ctx)
 
 	updatedPRBody, err := syncCheckLists(client, ctx, prData)
 	if err != nil {
@@ -80,7 +78,7 @@ func main() {
 		return
 	}
 
-	err = updatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, updatedPRBody)
+	err = github.UpdatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
@@ -89,34 +87,23 @@ func main() {
 	fmt.Println("\nBody updated with success !")
 }
 
-func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
-	files, _, err := client.PullRequests.ListFiles(ctx, owner, repo, prNumber, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var filenames []string
-	for _, file := range files {
-		filenames = append(filenames, *file.Filename)
-	}
-	return filenames, nil
-}
-
-func syncCheckLists(client *github.Client, ctx context.Context, prData githubHelper.PullRequestData) (string, error) {
+func syncCheckLists(client *github.GithubClient, ctx context.Context, prData github.PullRequestData) (string, error) {
 	currentPRBody := prData.PR.GetBody()
-	filenames, err := getDiffFilesNames(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
+	filenames, err := github.GetDiffFilesNames(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
 	if err != nil {
 		fmt.Println(err, "Error while retrieving the files diff of the PR")
 		return "", err
 	}
 
-	checkListsPlan, err := getPlanCheckLists(currentPRBody, filenames, false)
+	fmt.Println("There is ", len(filenames), " files in the diff of the PR")
+
+	checkListsPlan, err := getCheckListsPlan(currentPRBody, filenames, false)
 	if err != nil {
 		fmt.Println(err, "Error while getting the plan of the checklists")
 		return "", err
 	}
 
-	currentPRBody, err = applyPlanCheckLists(currentPRBody, checkListsPlan, false)
+	currentPRBody, err = applyCheckListsPlan(currentPRBody, checkListsPlan, false)
 	if err != nil {
 		fmt.Println(err, "Error while synchronising the checklists")
 		return "", err
@@ -125,15 +112,15 @@ func syncCheckLists(client *github.Client, ctx context.Context, prData githubHel
 	return currentPRBody, nil
 }
 
-func getPlanCheckLists(currentPRBody string, filenames []string, ignoreLog bool) ([]CheckListPlan, error) {
+func getCheckListsPlan(currentPRBody string, filenames []string, ignoreLog bool) ([]CheckListPlan, error) {
 	if !ignoreLog {
-		fmt.Println("Plan:")
+		fmt.Println("\nPlan:")
 	}
 
 	checkListsPlan := []CheckListPlan{}
 
 	for _, checkListItem := range allCheckLists {
-		checkListItemPlan, err := getPlanCheckList(currentPRBody, checkListItem, filenames, ignoreLog)
+		checkListItemPlan, err := getCheckListPlan(currentPRBody, checkListItem, filenames, ignoreLog)
 		if err != nil {
 			fmt.Println(err, "Error while getting the plan of the checklist item "+checkListItem.Filename)
 			return []CheckListPlan{}, err
@@ -144,7 +131,7 @@ func getPlanCheckLists(currentPRBody string, filenames []string, ignoreLog bool)
 	return checkListsPlan, nil
 }
 
-func getPlanCheckList(prBody string, checkListItem CheckList, filenames []string, ignoreLog bool) (CheckListPlan, error) {
+func getCheckListPlan(prBody string, checkListItem CheckList, filenames []string, ignoreLog bool) (CheckListPlan, error) {
 	checkListTitle, err := getFirstLine(checkListItem.Filename)
 	if err != nil {
 		return CheckListPlan{}, err
@@ -198,7 +185,7 @@ func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 	return isCheckListNeeded
 }
 
-func applyPlanCheckLists(prBody string, checkListsPlan []CheckListPlan, ignoreLog bool) (string, error) {
+func applyCheckListsPlan(prBody string, checkListsPlan []CheckListPlan, ignoreLog bool) (string, error) {
 	if !ignoreLog {
 		fmt.Println("\nApply:")
 	}
@@ -280,21 +267,6 @@ func getFileContent(filename string) (string, error) {
 	}
 
 	return strings.Join(bodyLines, "\n"), nil
-}
-
-func updatePRBody(client *github.Client, ctx context.Context, owner string, repo string, pr *github.PullRequest, newbody string) error {
-	updatedPR := &github.PullRequest{
-		Title: pr.Title,
-		Body:  github.String(newbody),
-		State: pr.State,
-		Base:  pr.Base,
-	}
-
-	_, _, err := client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), updatedPR)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func getFirstLine(filename string) (string, error) {

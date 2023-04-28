@@ -5,19 +5,19 @@ import (
 )
 
 func TestUnCheckedCheckbox(t *testing.T) {
-	got := isContainsUncheckedCheckBox("test  \n- [ ] test", true)
-	want := true
+	got := findUncheckedCheckboxes("test  \n- [ ] test")
+	want := []string{"- [ ] test"}
 
-	if got != want {
+	if len(got) != len(want) {
 		t.Errorf("got %v want %v", got, want)
 	}
 }
 
 func TestCheckedCheckbox(t *testing.T) {
-	got := isContainsUncheckedCheckBox("test  \n- [x] test", true)
-	want := false
+	got := findUncheckedCheckboxes("test  \n- [x] test")
+	want := []string{}
 
-	if got != want {
+	if len(got) != len(want) {
 		t.Errorf("got %v want %v", got, want)
 	}
 }
