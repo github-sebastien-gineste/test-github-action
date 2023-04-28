@@ -9,12 +9,12 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 	updatedPRBody := prStartBody
 
 	// Got
-	CheckListsPlan, err := getPlanCheckLists(updatedPRBody, diffFilenames, true)
+	checkListsPlan, err := getPlanCheckLists(updatedPRBody, diffFilenames, true)
 	if err != nil {
 		t.Error("Error while getting the plan of the checklists :", err)
 	}
 
-	updatedPRBody, err = applyPlanCheckLists(updatedPRBody, CheckListsPlan, true)
+	updatedPRBody, err = applyPlanCheckLists(updatedPRBody, checkListsPlan, true)
 	if err != nil {
 		t.Error("Error while synchronising the checklists : ", err)
 	}
@@ -51,6 +51,48 @@ func TestAllCheckListPresence(t *testing.T) {
 func TestAddingCheckListProtoAndSql(t *testing.T) {
 	diffFilenames := []string{"test.sql", "test2.proto", "test.txt"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md", "sql_migration_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWithApiDomainsConf(t *testing.T) {
+	diffFilenames := []string{"test.txt", "api-domains.conf", "text.md"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWithApiDomainsMigrationsConf(t *testing.T) {
+	diffFilenames := []string{"test.txt", "test.md", "api-domains-migrations.conf"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWith_bakeryFolder(t *testing.T) {
+	diffFilenames := []string{"test.txt", "test.go", "_bakery/test/text.txt"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
 	prStartBody := `Start body 
 	Test test 

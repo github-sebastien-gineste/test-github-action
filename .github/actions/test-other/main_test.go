@@ -5,7 +5,7 @@ import (
 )
 
 func TestUnCheckedCheckbox(t *testing.T) {
-	got := isContainsUncheckedCheckBox("test  \n- [ ] test")
+	got := isContainsUncheckedCheckBox("test  \n- [ ] test", true)
 	want := true
 
 	if got != want {
@@ -14,7 +14,7 @@ func TestUnCheckedCheckbox(t *testing.T) {
 }
 
 func TestCheckedCheckbox(t *testing.T) {
-	got := isContainsUncheckedCheckBox("test  \n- [x] test")
+	got := isContainsUncheckedCheckBox("test  \n- [x] test", true)
 	want := false
 
 	if got != want {
