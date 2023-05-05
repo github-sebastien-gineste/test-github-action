@@ -13,10 +13,26 @@ import (
 
 const TEMPLATE_CHECKLIST_PATH = "./templates/"
 
+type Filter interface {
+	Filter(string) bool
+}
+
+type FilterImp struct {
+	regexAccept *regexp.Regexp
+	regexReject *regexp.Regexp
+}
+
+func (filter FilterImp) Filter(filename string) bool {
+	if filter.regexAccept != nil && filter.regexAccept.MatchString(filename) {
+		return !(filter.regexReject != nil && filter.regexReject.MatchString(filename))
+	}
+	return false
+}
+
 type CheckList struct {
-	Filename              string
-	RegexDiffFiles        *regexp.Regexp
-	RegexNegatifDiffFiles *regexp.Regexp
+	Filename        string
+	InclusionFilter Filter
+	ExclusionFilter Filter
 }
 
 type CheckListPlan struct {
@@ -43,21 +59,21 @@ const (
 
 var allCheckLists = []CheckList{
 	{
-		Filename:       "proto_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.proto$`),
+		Filename:        "proto_checklist.md",
+		InclusionFilter: FilterImp{regexp.MustCompile(`\.proto$`), nil},
 	}, {
-		Filename:       "implementation_rpc_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`Handler\.scala$`),
+		Filename:        "implementation_rpc_checklist.md",
+		InclusionFilter: FilterImp{regexp.MustCompile(`Handler\.scala$`), nil},
 	}, {
-		Filename:              "development_conf_checklist.md",
-		RegexDiffFiles:        regexp.MustCompile(`\.conf$`),
-		RegexNegatifDiffFiles: regexp.MustCompile(`(api-domains\.conf|api-domains-migrations\.conf)$`),
+		Filename:        "development_conf_checklist.md",
+		InclusionFilter: FilterImp{regexp.MustCompile(`\.conf$`), regexp.MustCompile(`(api-domains\.conf|api-domains-migrations\.conf)$`)},
 	}, {
-		Filename:       "production_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`),
+		Filename:        "production_conf_checklist.md",
+		InclusionFilter: FilterImp{regexp.MustCompile(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`), nil},
+		ExclusionFilter: FilterImp{regexp.MustCompile(`\.sql$`), nil},
 	}, {
-		Filename:       "sql_migration_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.sql$`),
+		Filename:        "sql_migration_checklist.md",
+		InclusionFilter: FilterImp{regexp.MustCompile(`\.sql$`), nil},
 	},
 }
 
@@ -174,8 +190,8 @@ func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAl
 func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 	isCheckListNeeded := false
 	for _, filename := range filenames {
-		if checkListItem.RegexDiffFiles.MatchString(filename) {
-			if checkListItem.RegexNegatifDiffFiles != nil && checkListItem.RegexNegatifDiffFiles.MatchString(filename) {
+		if checkListItem.InclusionFilter.Filter(filename) {
+			if checkListItem.ExclusionFilter != nil && checkListItem.ExclusionFilter.Filter(filename) {
 				continue
 			}
 			isCheckListNeeded = true
