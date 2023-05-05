@@ -191,10 +191,12 @@ func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
 	isCheckListNeeded := false
 	for _, filename := range filenames {
 		if checkListItem.InclusionFilter.Filter(filename) {
-			if checkListItem.ExclusionFilter != nil && checkListItem.ExclusionFilter.Filter(filename) {
-				continue
-			}
 			isCheckListNeeded = true
+			if checkListItem.ExclusionFilter == nil {
+				break
+			}
+		} else if checkListItem.ExclusionFilter != nil && checkListItem.ExclusionFilter.Filter(filename) {
+			isCheckListNeeded = false
 			break
 		}
 	}
