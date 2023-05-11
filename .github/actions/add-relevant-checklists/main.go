@@ -13,26 +13,38 @@ import (
 
 const TEMPLATE_CHECKLIST_PATH = "./templates/"
 
-type Filter interface {
+type FileFilter interface {
 	Filter(string) bool
 }
 
-type FilterImp struct {
+type RegexFileFilter struct {
+	// return *true* for the Filter function if this regex match
 	regexAccept *regexp.Regexp
-	regexReject *regexp.Regexp
+	// return *false* for the Filter function if this regex match
+	regexReject *regexp.Regexp // -> Take precedence over regexAccept
 }
 
-func (filter FilterImp) Filter(filename string) bool {
-	if filter.regexAccept != nil && filter.regexAccept.MatchString(filename) {
+func NewFilenameMatchesFilter(accept string) RegexFileFilter {
+	return RegexFileFilter{regexp.MustCompile(accept), nil}
+}
+
+func NewFilenameMatchesFilterWithReject(accept string, reject string) RegexFileFilter {
+	return RegexFileFilter{regexp.MustCompile(accept), regexp.MustCompile(reject)}
+}
+
+func (filter RegexFileFilter) Filter(filename string) bool {
+	if filter.regexAccept.MatchString(filename) {
 		return !(filter.regexReject != nil && filter.regexReject.MatchString(filename))
 	}
 	return false
 }
 
 type CheckList struct {
-	Filename        string
-	InclusionFilter Filter
-	ExclusionFilter Filter
+	Filename string
+	// If one filename on the PR diff return true on its Filter() function, the checklist will be included
+	InclusionFilter FileFilter
+	// if one filename on the PR diff return true on its Filter() function, the checklist will not be included
+	ExclusionFilter FileFilter // -> Take precedence over the inclusion filter
 }
 
 type CheckListPlan struct {
@@ -60,20 +72,20 @@ const (
 var allCheckLists = []CheckList{
 	{
 		Filename:        "proto_checklist.md",
-		InclusionFilter: FilterImp{regexp.MustCompile(`\.proto$`), nil},
+		InclusionFilter: NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
 	}, {
 		Filename:        "implementation_rpc_checklist.md",
-		InclusionFilter: FilterImp{regexp.MustCompile(`Handler\.scala$`), nil},
+		InclusionFilter: NewFilenameMatchesFilter(`Handler\.scala$`),
 	}, {
 		Filename:        "development_conf_checklist.md",
-		InclusionFilter: FilterImp{regexp.MustCompile(`\.conf$`), regexp.MustCompile(`(api-domains\.conf|api-domains-migrations\.conf)$`)},
+		InclusionFilter: NewFilenameMatchesFilterWithReject(`\.conf$`, `(api-domains\.conf|api-domains-migrations\.conf)$`),
 	}, {
 		Filename:        "production_conf_checklist.md",
-		InclusionFilter: FilterImp{regexp.MustCompile(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`), nil},
-		ExclusionFilter: FilterImp{regexp.MustCompile(`\.sql$`), nil},
+		InclusionFilter: NewFilenameMatchesFilter(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`),
+		ExclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
 	}, {
 		Filename:        "sql_migration_checklist.md",
-		InclusionFilter: FilterImp{regexp.MustCompile(`\.sql$`), nil},
+		InclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
 	},
 }
 
@@ -188,16 +200,18 @@ func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAl
 }
 
 func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
+	isExclusionFilterPresent := checkListItem.ExclusionFilter != nil
 	isCheckListNeeded := false
+
 	for _, filename := range filenames {
-		if checkListItem.InclusionFilter.Filter(filename) {
-			isCheckListNeeded = true
-			if checkListItem.ExclusionFilter == nil {
-				break
-			}
-		} else if checkListItem.ExclusionFilter != nil && checkListItem.ExclusionFilter.Filter(filename) {
+		if isExclusionFilterPresent && checkListItem.ExclusionFilter.Filter(filename) {
 			isCheckListNeeded = false
 			break
+		} else if checkListItem.InclusionFilter.Filter(filename) {
+			isCheckListNeeded = true
+			if !isExclusionFilterPresent {
+				break
+			}
 		}
 	}
 	return isCheckListNeeded

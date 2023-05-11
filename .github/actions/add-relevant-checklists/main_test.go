@@ -48,13 +48,74 @@ func TestAllCheckListPresence(t *testing.T) {
 	}
 }
 
+func TestExclusionFilterForApiDomainsConfWhenTheyAreSQLMigration(t *testing.T) {
+	diffFilenames := []string{"test.sql", "folder/api-domains.conf", "test.txt"}
+	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestExclusionWhenAFileIsBothIncludedAndExcluded(t *testing.T) {
+	diffFilenames := []string{"_bakery/folder/test.sql", "test.txt"}
+	// the first file is both included and excluded in the "production_conf_checklist.md"
+	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
 func TestAddingCheckListProtoAndSql(t *testing.T) {
-	diffFilenames := []string{"test.sql", "test2.proto", "test.txt"}
+	diffFilenames := []string{"test.sql", "domains/account/account-api/src/main/protobuf/test.proto", "test.txt"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md", "sql_migration_checklist.md"}
 
 	prStartBody := `Start body 
 	Test test 
 	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingProtoChecklistIfTheProtoIsADomainProto(t *testing.T) {
+	diffFilenames := []string{"domains/account/account-api/src/main/protobuf/test.proto"}
+	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingProtoChecklistIfTheProtoIsAFrameworkProto(t *testing.T) {
+	diffFilenames := []string{"framework/api-commons/src/main/protobuf/test.proto"}
+	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestNotAddingProtoChecklistIfTheProtoIsNotDomainOrFrameworkProto(t *testing.T) {
+	diffFilenames := []string{"anotherdirectory/test.proto"}
+	allCheckListFilesNameNeeded := []string{}
+
+	prStartBody := `Start body`
 
 	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
 	if got != want {
@@ -123,9 +184,9 @@ func TestRemovingProtoCheckList(t *testing.T) {
 	allCheckListFilesNameNeeded := []string{}
 
 	protoCheckListItem := allCheckLists[0]
-	/*if !strings.Contains(protoCheckListItem.RegexDiffFiles.String(), ".proto") {
+	if !strings.Contains(protoCheckListItem.Filename, "proto") {
 		t.Error("Proto checklist item is not the first one, there is ", protoCheckListItem.Filename, " in its place")
-	}*/
+	}
 
 	contentProto, err := getFileContent(protoCheckListItem.Filename)
 	if err != nil {
@@ -148,13 +209,13 @@ func TestRemovingProtoCheckList(t *testing.T) {
 }
 
 func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
-	diffFilenames := []string{"test.txt", "test2.proto", "domains/User.scala"}
+	diffFilenames := []string{"test.txt", "domains/account/account-api/src/main/protobuf/test2.proto", "domains/User.scala"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
 
 	sqlCheckListItem := allCheckLists[4]
-	/*if !strings.Contains(sqlCheckListItem.RegexDiffFiles.String(), ".sql") {
+	if !strings.Contains(sqlCheckListItem.Filename, "sql") {
 		t.Error("SQL checklist item is not in the 4th index, there is ", sqlCheckListItem.Filename, " in its place")
-	}*/
+	}
 
 	contentSQL, err := getFileContent(sqlCheckListItem.Filename)
 	if err != nil {
