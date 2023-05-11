@@ -102,7 +102,7 @@ func UpdatePRBody(client *GithubClient, ctx context.Context, owner string, repo 
 }
 
 func GetListPRComments(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest) ([]IssueComment, error) {
-	comments, _, err := client.Issues.ListComments(ctx, "OWNER", "REPO", pr.GetNumber(), &github.IssueListCommentsOptions{})
+	comments, _, err := client.Issues.ListComments(ctx, owner, repo, pr.GetNumber(), &github.IssueListCommentsOptions{})
 	if err != nil {
 		return []IssueComment{}, err
 	}
