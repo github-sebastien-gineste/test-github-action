@@ -1,8 +1,7 @@
 name: Test pr review
 
-on:
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+on: 
+  pull_request_review
 
 jobs:
   build:

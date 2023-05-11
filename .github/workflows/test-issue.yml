@@ -1,8 +1,8 @@
 name: Test ISSUE PR
 
-on:
-  pull_request_review_comment:
-    types: [created, edited, deleted]
+on: 
+  pull_request_review_comment
+    
 
 jobs:
   build:
