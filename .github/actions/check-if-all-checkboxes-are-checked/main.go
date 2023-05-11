@@ -15,7 +15,7 @@ func main() {
 
 	prbody := prData.PR.GetBody()
 
-	fmt.Println("Search for unchecked checkboxes...")
+	fmt.Println("Search for unchecked checkboxes... ")
 	uncheckedCheckboxes := findUncheckedCheckboxes(prbody)
 
 	for _, uncheckedCheckboxe := range uncheckedCheckboxes {
