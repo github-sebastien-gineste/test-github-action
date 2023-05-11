@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   checklistsManagement:
-    if: ! github.event.action == 'edited' && github.event.pull_request.draft == true
+    if: ${{ !(github.event.action == 'edited' && github.event.pull_request.draft == true)}}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code
