@@ -5,7 +5,7 @@ env:
 
 on:
   pull_request:
-    types: [ opened, synchronize, reopened, edited]
+    types: [ opened, synchronize, reopened, edited, ready_for_review]
 
 concurrency:
   group: github-checklist-${{ github.ref }}
