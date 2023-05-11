@@ -6,8 +6,8 @@ env:
 on:
   pull_request:
     types: [ opened, synchronize, reopened, edited, ready_for_review ]
-  issue_comment:    
-    types: [ created, edited, deleted ]
+  pull_request_review:    
+    types: [submitted, edited, dismissed]
 
 concurrency:
   group: github-checklist-${{ github.ref }}
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   checklistsManagement:
-    if: ${{ !((github.event.action == 'edited' && github.event.pull_request.draft) || (github.event == 'issue_comment' && !github.event.issue.pull_request) ) }}
+    if: ${{ !((github.event.action == 'edited' && github.event.pull_request.draft)) }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code
