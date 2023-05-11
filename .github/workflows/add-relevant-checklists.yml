@@ -6,8 +6,8 @@ env:
 on:
   pull_request:
     types: [ opened, synchronize, reopened, edited, ready_for_review ]
-  pull_request_review:    
-    types: [submitted, edited, dismissed]
+  issue_comment:    
+    types: [created, edited, deleted]
 
 concurrency:
   group: github-checklist-${{ github.ref }}
