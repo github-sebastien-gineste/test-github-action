@@ -1,24 +1,59 @@
 package main
 
 import (
+	"actions/commons/github"
 	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
-
-	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
 )
 
-const PR_NUMBER = "PR_NUMBER"
-const OWNER = "OWNER"
-const REPO = "REPO"
-const GITHUB_TOKEN = "GITHUB_TOKEN"
-const TEMPLATE_CHECKLIST_PATH = "../../templates/checklists/"
+const TEMPLATE_CHECKLIST_PATH = "./templates/"
+
+type FileFilter interface {
+	Filter(string) bool
+}
+
+type RegexFileFilter struct {
+	// return *true* for the Filter function if this regex match
+	regexAccept *regexp.Regexp
+	// return *false* for the Filter function if this regex match
+	regexReject *regexp.Regexp // -> Take precedence over regexAccept
+}
+
+func NewFilenameMatchesFilter(accept string) RegexFileFilter {
+	return RegexFileFilter{regexp.MustCompile(accept), nil}
+}
+
+func NewFilenameMatchesFilterWithReject(accept string, reject string) RegexFileFilter {
+	return RegexFileFilter{regexp.MustCompile(accept), regexp.MustCompile(reject)}
+}
+
+func (filter RegexFileFilter) Filter(filename string) bool {
+	if filter.regexAccept.MatchString(filename) {
+		return !(filter.regexReject != nil && filter.regexReject.MatchString(filename))
+	}
+	return false
+}
+
+type CheckList struct {
+	Filename string
+	// If one filename on the PR diff return true on its Filter() function, the checklist will be included
+	InclusionFilter FileFilter
+	// if one filename on the PR diff return true on its Filter() function, the checklist will not be included
+	ExclusionFilter FileFilter // -> Take precedence over the inclusion filter
+}
+
+type CheckListPlan struct {
+	Filename string
+	Title    string
+	Action   PlanAction
+}
+
+type StateRemoveCheckList int64
 
 const (
 	SearchCheckList StateRemoveCheckList = iota
@@ -26,138 +61,209 @@ const (
 	CopyRest
 )
 
-type StateRemoveCheckList int64
+type PlanAction string
 
-type CheckList struct {
-	Filename       string
-	RegexDiffFiles *regexp.Regexp
-}
+const (
+	ADDED   PlanAction = "ADDED"
+	IGNORED PlanAction = "IGNORED"
+	REMOVED PlanAction = "REMOVED"
+)
 
 var allCheckLists = []CheckList{
 	{
-		Filename:       "proto_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.proto$`),
+		Filename:        "proto_checklist.md",
+		InclusionFilter: NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
 	}, {
-		Filename:       "implementation_rpc_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`Handler\.scala$`),
+		Filename:        "implementation_rpc_checklist.md",
+		InclusionFilter: NewFilenameMatchesFilter(`Handler\.scala$`),
 	}, {
-		Filename:       "development_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.conf$`),
+		Filename:        "development_conf_checklist.md",
+		InclusionFilter: NewFilenameMatchesFilterWithReject(`\.conf$`, `(api-domains\.conf|api-domains-migrations\.conf)$`),
 	}, {
-		Filename:       "production_conf_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`^api-domains.conf$`),
+		Filename:        "production_conf_checklist.md",
+		InclusionFilter: NewFilenameMatchesFilter(`(.*_bakery.*)|(api-domains\.conf|api-domains-migrations\.conf)$`),
+		ExclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
 	}, {
-		Filename:       "sql_migration_checklist.md",
-		RegexDiffFiles: regexp.MustCompile(`\.sql$`),
+		Filename:        "sql_migration_checklist.md",
+		InclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
 	},
 }
 
 func main() {
-	ctx := context.Background()
-	client := connectClient(ctx)
 
-	// Retrieve information from the Pull Request
-	prNumberStr := os.Getenv(PR_NUMBER)
-	prNumber, err := strconv.Atoi(prNumberStr)
-	owner := os.Getenv(OWNER)
-	repo := os.Getenv(REPO)
-	pr, _, err := client.PullRequests.Get(ctx, owner, repo, prNumber)
+	client, ctx := github.ConnectClient()
+
+	prData := github.GetPullRequestData(client, ctx)
+
+	updatedPRBody, err := syncCheckLists(client, ctx, prData)
 	if err != nil {
-		fmt.Println(err, "Error while retrieving the PR informations")
-		panic(err)
-	}
-	currentPRBody := pr.GetBody()
-	filenames, err := getDiffFilesNames(client, ctx, owner, repo, prNumber)
-	if err != nil {
-		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		fmt.Println(err, "Error while synchronising the checklists")
 		panic(err)
 	}
 
-	path, err := os.Getwd()
-	if err != nil {
-		fmt.Println(err)
+	if updatedPRBody == prData.PR.GetBody() {
+		fmt.Println("\nNo changes required to the body of the PR")
+		return
 	}
-	fmt.Println(path) // for example /home/user
 
-	path, err = os.Executable()
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(path)
-
-	// Makes the changes
-	for _, checkListItem := range allCheckLists {
-		currentPRBody, err = syncCheckList(currentPRBody, checkListItem, filenames)
-		if err != nil {
-			fmt.Println(err, "Error while synchronising the checklist item "+checkListItem.Filename)
-			panic(err)
-		}
-	}
-	err = updatePRBody(client, ctx, owner, repo, pr, currentPRBody)
+	err = github.UpdatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, updatedPRBody)
 	if err != nil {
 		fmt.Println(err, "Error while updating the PR body")
 		panic(err)
 	}
-	fmt.Println("Body updated with success !")
+
+	fmt.Println("\nBody updated with success !")
 }
 
-func connectClient(ctx context.Context) *github.Client {
-	token := os.Getenv(GITHUB_TOKEN)
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(ctx, ts)
-	return github.NewClient(tc)
-}
-
-func getDiffFilesNames(client *github.Client, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
-	files, _, err := client.PullRequests.ListFiles(ctx, owner, repo, prNumber, nil)
+func syncCheckLists(client *github.GithubClient, ctx context.Context, prData github.PullRequestData) (string, error) {
+	currentPRBody := prData.PR.GetBody()
+	filenames, err := github.GetDiffFilesNames(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
 	if err != nil {
-		return nil, err
+		fmt.Println(err, "Error while retrieving the files diff of the PR")
+		return "", err
 	}
 
-	var filenames []string
-	for _, file := range files {
-		filenames = append(filenames, *file.Filename)
+	fmt.Println("There is ", len(filenames), " files in the diff of the PR")
+
+	checkListsPlan, err := getCheckListsPlan(currentPRBody, filenames, false)
+	if err != nil {
+		fmt.Println(err, "Error while getting the plan of the checklists")
+		return "", err
 	}
-	return filenames, nil
+
+	currentPRBody, err = applyCheckListsPlan(currentPRBody, checkListsPlan, false)
+	if err != nil {
+		fmt.Println(err, "Error while synchronising the checklists")
+		return "", err
+	}
+
+	return currentPRBody, nil
 }
 
-func syncCheckList(prBody string, checkListItem CheckList, filenames []string) (string, error) {
+func getCheckListsPlan(currentPRBody string, filenames []string, ignoreLog bool) ([]CheckListPlan, error) {
+	if !ignoreLog {
+		fmt.Println("\nPlan:")
+	}
+
+	checkListsPlan := []CheckListPlan{}
+
+	for _, checkListItem := range allCheckLists {
+		checkListItemPlan, err := getCheckListPlan(currentPRBody, checkListItem, filenames, ignoreLog)
+		if err != nil {
+			fmt.Println(err, "Error while getting the plan of the checklist item "+checkListItem.Filename)
+			return []CheckListPlan{}, err
+		}
+		checkListsPlan = append(checkListsPlan, checkListItemPlan)
+	}
+
+	return checkListsPlan, nil
+}
+
+func getCheckListPlan(prBody string, checkListItem CheckList, filenames []string, ignoreLog bool) (CheckListPlan, error) {
 	checkListTitle, err := getFirstLine(checkListItem.Filename)
 	if err != nil {
-		return "", err
+		return CheckListPlan{}, err
 	}
 	isCheckListNeeded := isCheckListNeeded(checkListItem, filenames)
 	isChecklistAlreadyPresent := strings.Contains(prBody, checkListTitle)
+	checkListPlan := CheckListPlan{checkListItem.Filename, checkListTitle, IGNORED}
 
-	if isChecklistAlreadyPresent {
-		if !isCheckListNeeded {
-			prBody = removeCheckList(prBody, checkListItem, checkListTitle)
-		}
-	} else if isCheckListNeeded {
-		content, err := getFileContent(checkListItem.Filename)
-		if err != nil {
-			return "", err
-		}
-		prBody += "\n" + content
+	if isChecklistAlreadyPresent && !isCheckListNeeded {
+		checkListPlan.Action = REMOVED
+	} else if isCheckListNeeded && !isChecklistAlreadyPresent {
+		checkListPlan.Action = ADDED
 	}
 
-	return prBody, nil
+	printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, checkListPlan.Action, ignoreLog)
+	return checkListPlan, nil
+}
+
+func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision PlanAction, ignoreLog bool) {
+	if ignoreLog {
+		return
+	}
+
+	logText := "- Checklist " + checkListItem.Filename + " : "
+
+	if isCheckListNeeded {
+		logText += "needed and "
+	} else {
+		logText += "not needed and "
+	}
+	if isChecklistAlreadyPresent {
+		logText += "present"
+	} else {
+		logText += "not present"
+	}
+
+	fmt.Println(logText + " => TO BE " + string(decision))
 }
 
 func isCheckListNeeded(checkListItem CheckList, filenames []string) bool {
+	isExclusionFilterPresent := checkListItem.ExclusionFilter != nil
 	isCheckListNeeded := false
+
 	for _, filename := range filenames {
-		if checkListItem.RegexDiffFiles.MatchString(filename) {
-			isCheckListNeeded = true
+		if isExclusionFilterPresent && checkListItem.ExclusionFilter.Filter(filename) {
+			isCheckListNeeded = false
 			break
+		} else if checkListItem.InclusionFilter.Filter(filename) {
+			isCheckListNeeded = true
+			if !isExclusionFilterPresent {
+				break
+			}
 		}
 	}
 	return isCheckListNeeded
 }
 
-func removeCheckList(prbody string, checkListItem CheckList, checkListTitle string) string {
+func applyCheckListsPlan(prBody string, checkListsPlan []CheckListPlan, ignoreLog bool) (string, error) {
+	if !ignoreLog {
+		fmt.Println("\nApply:")
+	}
+	prBodyUpdated := prBody
+	nbIgnored := 0
+
+	for _, checkListItemPlan := range checkListsPlan {
+		switch checkListItemPlan.Action {
+		case ADDED:
+			if !ignoreLog {
+				fmt.Println("- Adding checklist " + checkListItemPlan.Filename)
+			}
+			newBody, err := addCheckList(prBodyUpdated, checkListItemPlan.Filename)
+			if err != nil {
+				fmt.Println(err, "Error while adding the checklist item "+checkListItemPlan.Filename)
+				return "", err
+			}
+			prBodyUpdated = newBody
+		case REMOVED:
+			if !ignoreLog {
+				fmt.Println("- Removing checklist " + checkListItemPlan.Filename)
+			}
+			prBodyUpdated = removeCheckList(prBodyUpdated, checkListItemPlan.Title)
+		case IGNORED:
+			nbIgnored++
+		default:
+			return "", errors.New("Unknown action " + string(checkListItemPlan.Action))
+		}
+	}
+
+	if nbIgnored == len(checkListsPlan) && !ignoreLog {
+		fmt.Println("Nothing to do")
+	}
+
+	return prBodyUpdated, nil
+}
+
+func addCheckList(prBody string, filename string) (string, error) {
+	content, err := getFileContent(filename)
+	if err != nil {
+		return "", err
+	}
+	return prBody + "\n" + content, nil
+}
+
+func removeCheckList(prbody string, checkListTitle string) string {
 	newBody := ""
 	stateRemoveCheckList := SearchCheckList
 	for _, line := range strings.Split(prbody, "\n") {
@@ -193,21 +299,6 @@ func getFileContent(filename string) (string, error) {
 	}
 
 	return strings.Join(bodyLines, "\n"), nil
-}
-
-func updatePRBody(client *github.Client, ctx context.Context, owner string, repo string, pr *github.PullRequest, newbody string) error {
-	updatedPR := &github.PullRequest{
-		Title: pr.Title,
-		Body:  github.String(newbody),
-		State: pr.State,
-		Base:  pr.Base,
-	}
-
-	_, _, err := client.PullRequests.Edit(ctx, owner, repo, pr.GetNumber(), updatedPR)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func getFirstLine(filename string) (string, error) {

@@ -9,12 +9,14 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 	updatedPRBody := prStartBody
 
 	// Got
-	for _, checkListItem := range allCheckLists {
-		updatedPRBodyWithThisItem, err := syncCheckList(updatedPRBody, checkListItem, diffFilenames)
-		updatedPRBody = updatedPRBodyWithThisItem
-		if err != nil {
-			t.Error("Checklist item file is empty :", err)
-		}
+	checkListsPlan, err := getCheckListsPlan(updatedPRBody, diffFilenames, true)
+	if err != nil {
+		t.Error("Error while getting the plan of the checklists :", err)
+	}
+
+	updatedPRBody, err = applyCheckListsPlan(updatedPRBody, checkListsPlan, true)
+	if err != nil {
+		t.Error("Error while synchronising the checklists : ", err)
 	}
 
 	// Want
@@ -35,7 +37,7 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 
 func TestAllCheckListPresence(t *testing.T) {
 	for _, checkListItem := range allCheckLists {
-		if checkListItem.Filename == "" || checkListItem.RegexDiffFiles == nil {
+		if checkListItem.Filename == "" || checkListItem.InclusionFilter == nil {
 			t.Error("Checklist item is not complete")
 		} else {
 			_, err := getFileContent(checkListItem.Filename)
@@ -46,9 +48,112 @@ func TestAllCheckListPresence(t *testing.T) {
 	}
 }
 
+func TestExclusionFilterForApiDomainsConfWhenTheyAreSQLMigration(t *testing.T) {
+	diffFilenames := []string{"test.sql", "folder/api-domains.conf", "test.txt"}
+	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestExclusionWhenAFileIsBothIncludedAndExcluded(t *testing.T) {
+	diffFilenames := []string{"_bakery/folder/test.sql", "test.txt"}
+	// the first file is both included and excluded in the "production_conf_checklist.md"
+	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
 func TestAddingCheckListProtoAndSql(t *testing.T) {
-	diffFilenames := []string{"test.sql", "test2.proto", "test.txt"}
+	diffFilenames := []string{"test.sql", "domains/account/account-api/src/main/protobuf/test.proto", "test.txt"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md", "sql_migration_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingProtoChecklistIfTheProtoIsADomainProto(t *testing.T) {
+	diffFilenames := []string{"domains/account/account-api/src/main/protobuf/test.proto"}
+	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingProtoChecklistIfTheProtoIsAFrameworkProto(t *testing.T) {
+	diffFilenames := []string{"framework/api-commons/src/main/protobuf/test.proto"}
+	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestNotAddingProtoChecklistIfTheProtoIsNotDomainOrFrameworkProto(t *testing.T) {
+	diffFilenames := []string{"anotherdirectory/test.proto"}
+	allCheckListFilesNameNeeded := []string{}
+
+	prStartBody := `Start body`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWithApiDomainsConf(t *testing.T) {
+	diffFilenames := []string{"test.txt", "api-domains.conf", "text.md"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWithApiDomainsMigrationsConf(t *testing.T) {
+	diffFilenames := []string{"test.txt", "test.md", "api-domains-migrations.conf"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test`
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFilenames, allCheckListFilesNameNeeded)
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestAddingCheckListProductionWith_bakeryFolder(t *testing.T) {
+	diffFilenames := []string{"test.txt", "test.go", "_bakery/test/text.txt"}
+	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
 	prStartBody := `Start body 
 	Test test 
@@ -79,7 +184,7 @@ func TestRemovingProtoCheckList(t *testing.T) {
 	allCheckListFilesNameNeeded := []string{}
 
 	protoCheckListItem := allCheckLists[0]
-	if !strings.Contains(protoCheckListItem.RegexDiffFiles.String(), ".proto") {
+	if !strings.Contains(protoCheckListItem.Filename, "proto") {
 		t.Error("Proto checklist item is not the first one, there is ", protoCheckListItem.Filename, " in its place")
 	}
 
@@ -96,7 +201,7 @@ func TestRemovingProtoCheckList(t *testing.T) {
 
 	// remove the proto checklist in the want
 	protoTitle := strings.Split(contentProto, "\n")[0]
-	want = removeCheckList(want, protoCheckListItem, protoTitle)
+	want = removeCheckList(want, protoTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
@@ -104,11 +209,11 @@ func TestRemovingProtoCheckList(t *testing.T) {
 }
 
 func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
-	diffFilenames := []string{"test.txt", "test2.proto", "domains/User.scala"}
+	diffFilenames := []string{"test.txt", "domains/account/account-api/src/main/protobuf/test2.proto", "domains/User.scala"}
 	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
 
 	sqlCheckListItem := allCheckLists[4]
-	if !strings.Contains(sqlCheckListItem.RegexDiffFiles.String(), ".sql") {
+	if !strings.Contains(sqlCheckListItem.Filename, "sql") {
 		t.Error("SQL checklist item is not in the 4th index, there is ", sqlCheckListItem.Filename, " in its place")
 	}
 
@@ -125,7 +230,7 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 
 	// remove the sql checklist in the want
 	sqlTitle := strings.Split(contentSQL, "\n")[0]
-	want = removeCheckList(want, sqlCheckListItem, sqlTitle)
+	want = removeCheckList(want, sqlTitle)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
