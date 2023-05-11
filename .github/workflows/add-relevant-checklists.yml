@@ -21,7 +21,11 @@ jobs:
     steps:
     - name: Checkout the code
       uses: actions/checkout@v3
-
+    - name: Checkout Pull Request
+      if: github.event_name == 'issue_comment'
+      run: hub pr checkout ${{ github.event.issue.number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
