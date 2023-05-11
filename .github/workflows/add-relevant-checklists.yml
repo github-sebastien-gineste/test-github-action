@@ -7,8 +7,13 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened, edited]
 
+concurrency:
+  group: github-checklist-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  checklists-management:
+  checklistsManagement:
+    if: ! github.event.action == 'edited' && github.event.pull_request.draft == true
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code
