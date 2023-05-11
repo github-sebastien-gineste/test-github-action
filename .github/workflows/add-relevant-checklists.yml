@@ -4,8 +4,11 @@ env:
   GO_VERSION: "1.20"
 
 on:
+  issue_comment:    
+    types: [ created, edited, deleted ]
   pull_request:
-    types: [ opened, synchronize, reopened, edited, ready_for_review ]    
+    types: [ opened, synchronize, reopened, edited, ready_for_review ]
+
 
 concurrency:
   group: github-checklist-${{ github.ref }}
@@ -13,7 +16,7 @@ concurrency:
 
 jobs:
   checklistsManagement:
-    if: ${{ !(github.event.action == 'edited' && github.event.pull_request.draft == true)}}
+    if: ${{ true }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the code

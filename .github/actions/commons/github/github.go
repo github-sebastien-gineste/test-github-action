@@ -16,6 +16,7 @@ const OWNER = "OWNER"
 const REPO = "REPO"
 
 type GithubClient github.Client
+type IssueComment *github.IssueComment
 
 type PullRequestData struct {
 	PRNumber int
@@ -98,4 +99,20 @@ func UpdatePRBody(client *GithubClient, ctx context.Context, owner string, repo 
 		return err
 	}
 	return nil
+}
+
+func GetListPRComments(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest) ([]IssueComment, error) {
+	comments, _, err := client.Issues.ListComments(ctx, owner, repo, pr.GetNumber(), &github.IssueListCommentsOptions{})
+	if err != nil {
+		return []IssueComment{}, err
+	}
+
+	var issueComments []IssueComment
+
+	for _, comment := range comments {
+		issueComment := IssueComment(comment)
+		issueComments = append(issueComments, issueComment)
+	}
+
+	return issueComments, nil
 }

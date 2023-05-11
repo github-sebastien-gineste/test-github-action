@@ -5,7 +5,7 @@ import (
 )
 
 func TestUnCheckedCheckbox(t *testing.T) {
-	got := findUncheckedCheckboxes("test  \n- [ ] test")
+	got := findUncheckedCheckboxesInPrBody("test  \n- [ ] test")
 	want := []string{"- [ ] test"}
 
 	if len(got) != len(want) {
@@ -14,7 +14,7 @@ func TestUnCheckedCheckbox(t *testing.T) {
 }
 
 func TestCheckedCheckbox(t *testing.T) {
-	got := findUncheckedCheckboxes("test  \n- [x] test")
+	got := findUncheckedCheckboxesInPrBody("test  \n- [x] test")
 	want := []string{}
 
 	if len(got) != len(want) {

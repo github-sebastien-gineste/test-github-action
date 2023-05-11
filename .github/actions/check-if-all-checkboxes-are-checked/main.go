@@ -14,9 +14,14 @@ func main() {
 	prData := github.GetPullRequestData(client, ctx)
 
 	prbody := prData.PR.GetBody()
+	comments, err := github.GetListPRComments(client, ctx, prData.Owner, prData.Repo, prData.PR)
+	if err != nil {
+		fmt.Println(err, "Error while getting the comments lists of the PR")
+		panic(err)
+	}
 
 	fmt.Println("Search for unchecked checkboxes...")
-	uncheckedCheckboxes := findUncheckedCheckboxes(prbody)
+	uncheckedCheckboxes := findUncheckedCheckboxes(prbody, comments)
 
 	for _, uncheckedCheckboxe := range uncheckedCheckboxes {
 		fmt.Println("  " + uncheckedCheckboxe)
@@ -29,7 +34,14 @@ func main() {
 	fmt.Println("\nPR body does not contain unchecked checklist")
 }
 
-func findUncheckedCheckboxes(prBody string) []string {
+func findUncheckedCheckboxes(prBody string, comments []github.IssueComment) []string {
+	uncheckedCheckboxes := findUncheckedCheckboxesInPrBody(prBody)
+	uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInComment(comments)...)
+
+	return uncheckedCheckboxes
+}
+
+func findUncheckedCheckboxesInPrBody(prBody string) []string {
 	lines := strings.Split(prBody, "\n")
 	uncheckedCheckboxes := []string{}
 
@@ -38,6 +50,14 @@ func findUncheckedCheckboxes(prBody string) []string {
 			uncheckedCheckboxes = append(uncheckedCheckboxes, line)
 		}
 	}
-
 	return uncheckedCheckboxes
+}
+
+func findUncheckedCheckboxesInComment(comments []github.IssueComment) []string {
+
+	for _, comment := range comments {
+		fmt.Println("test ", *comment.Body)
+	}
+
+	return []string{}
 }
