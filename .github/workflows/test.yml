@@ -1,0 +1,15 @@
+name: Test
+
+on:
+  issue_comment:    
+    types: [ created, edited, deleted ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v3
+    - name: "test"
+      run: |
+        echo "test ${{ github.event.comment.body }}"
