@@ -16,7 +16,7 @@ const OWNER = "OWNER"
 const REPO = "REPO"
 
 type GithubClient github.Client
-type IssueComment github.IssueComment
+type IssueComment *github.IssueComment
 
 type PullRequestData struct {
 	PRNumber int
@@ -110,7 +110,7 @@ func GetListPRComments(client *GithubClient, ctx context.Context, owner string, 
 	var issueComments []IssueComment
 
 	for _, comment := range comments {
-		issueComment := IssueComment(*comment)
+		issueComment := IssueComment(comment)
 		issueComments = append(issueComments, issueComment)
 	}
 
