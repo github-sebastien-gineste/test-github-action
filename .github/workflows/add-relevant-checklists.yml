@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   checklistsManagement:
-    if: ${{ true }}
+    if: ${{ !((github.event_name == 'pull_request' && github.event.action == 'edited' && github.event.pull_request.draft) || (github.event_name == 'issue_comment' && !github.event.issue.pull_request) )}}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the codes
@@ -42,7 +42,7 @@ jobs:
       run: cd ./.github/actions/add-relevant-checklists && go run main.go 
 
     - name: Ensure that all checklists are completed
-      if: github.event.pull_request.draft == false
+      if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.draft)}} 
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || github.event.number }}
