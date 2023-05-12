@@ -156,4 +156,17 @@ func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, rep
 
 	fmt.Println(response)
 	fmt.Println(checkRun)
+	fmt.Println("\n\n")
+
+	result, resp, err := client.Checks.ListCheckSuitesForRef(ctx, owner, repo, sha, nil)
+
+	fmt.Println(result)
+	fmt.Println(resp)
+	fmt.Println("\n\n")
+
+	re, resp, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
+
+	fmt.Println(re)
+	fmt.Println(resp)
+
 }
