@@ -126,7 +126,7 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 		Context:     github.String("Checkbox check"),
 	}
 
-	fmt.Println("Create status: ", statusInput)
+	fmt.Println("Create statucs: ", statusInput)
 	fmt.Println("PR SHA : ", *pr.GetBase().SHA)
 
 	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.GetBase().SHA, statusInput)
