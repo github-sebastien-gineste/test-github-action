@@ -127,9 +127,10 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 	}
 
 	fmt.Println("Create statucs: ", statusInput)
-	fmt.Println("PR SHA : ", *pr.GetBase().SHA)
+	fmt.Println("PR SHA : ", *pr.Base.SHA)
+	fmt.Println("PR HEAD SHA : ", *pr.Head.SHA)
 
-	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.GetBase().SHA, statusInput)
+	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.Head.SHA, statusInput)
 	if err != nil {
 		panic(err)
 	}
