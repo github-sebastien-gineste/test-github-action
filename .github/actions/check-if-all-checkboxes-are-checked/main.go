@@ -28,6 +28,7 @@ func main() {
 	}
 
 	if len(uncheckedCheckboxes) > 0 {
+		github.CreateRepoStatue(client, ctx, prData.Owner, prData.Repo, prData.PR, "failure", "PR body contains unchecked checklist")
 		panic("PR body contains unchecked checklist")
 	}
 
@@ -54,10 +55,12 @@ func findUncheckedCheckboxesInPrBody(prBody string) []string {
 }
 
 func findUncheckedCheckboxesInComment(comments []github.IssueComment) []string {
+	uncheckedCheckboxes := []string{}
 
 	for _, comment := range comments {
 		fmt.Println("test ", *comment.Body)
+		uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInPrBody(*comment.Body)...)
 	}
 
-	return []string{}
+	return uncheckedCheckboxes
 }
