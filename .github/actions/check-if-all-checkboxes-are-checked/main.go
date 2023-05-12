@@ -16,7 +16,7 @@ func main() {
 	prbody := prData.PR.GetBody()
 	comments, err := github.GetListPRComments(client, ctx, prData.Owner, prData.Repo, prData.PR)
 	if err != nil {
-		fmt.Println(err, "Error while getting the comments lists of the PR")
+		fmt.Println(err, "Error while  getting the comments lists of the PR")
 		panic(err)
 	}
 
