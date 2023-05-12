@@ -138,8 +138,9 @@ func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, rep
 
 	// Crée une check run in progress
 	opt := github.UpdateCheckRunOptions{
-		Name:   "My check",
-		Status: github.String("success"),
+		Name:    "My check",
+		HeadSHA: github.String("33447fd6842597b6d596361fd143805698db6019"),
+		Status:  github.String("success"),
 		Output: &github.CheckRunOutput{
 			Title:   github.String("Check in progress"),
 			Text:    github.String("Some additional details about the check"),
