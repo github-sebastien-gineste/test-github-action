@@ -28,7 +28,7 @@ func main() {
 	}
 
 	if len(uncheckedCheckboxes) > 0 {
-		github.CreateRepoStatue(client, ctx, prData.Owner, prData.Repo, prData.PR, "failure", "PR body contains unchecked checklist")
+		github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.GetBase().SHA)
 		panic("PR body contains unchecked checklist")
 	}
 

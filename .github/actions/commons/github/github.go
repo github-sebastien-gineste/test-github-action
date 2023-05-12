@@ -134,3 +134,25 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 		panic(err)
 	}
 }
+
+func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string) {
+
+	// Crée une check run in progress
+	opt := github.CreateCheckRunOptions{
+		Name:    "My check",
+		HeadSHA: sha,
+		Status:  github.String("in_progress"),
+		Output: &github.CheckRunOutput{
+			Title:   github.String("Check in progress"),
+			Summary: github.String("The check is in progress..."),
+		},
+	}
+
+	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
+	if err != nil {
+		fmt.Println("Error creating check run:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(checkRun)
+}

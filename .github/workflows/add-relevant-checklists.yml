@@ -19,7 +19,7 @@ jobs:
     if: ${{ !((github.event_name == 'pull_request' && github.event.action == 'edited' && github.event.pull_request.draft) || (github.event_name == 'issue_comment' && !github.event.issue.pull_request) )}}
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the codes
+    - name: Checkout the code
       uses: actions/checkout@v3
     - name: Checkout Pull Request 
       if: github.event_name == 'issue_comment'
