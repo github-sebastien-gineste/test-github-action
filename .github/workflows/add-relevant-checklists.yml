@@ -55,7 +55,7 @@ jobs:
             name: "my-check-name",
             status: "completed",
             // Careful, code injection can happen.
-            conclusion: "in progress",
+            conclusion: "failure",
             // This is safe, not string interpolation.
             details_url: process.env.parameter_url,
             output: {
