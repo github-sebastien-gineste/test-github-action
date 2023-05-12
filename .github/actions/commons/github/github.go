@@ -116,3 +116,18 @@ func GetListPRComments(client *GithubClient, ctx context.Context, owner string, 
 
 	return issueComments, nil
 }
+
+func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest, status string, description string) {
+
+	// Création du statut du check
+	statusInput := &github.RepoStatus{
+		State:       github.String(status),
+		Description: github.String(description),
+		Context:     github.String("Checkbox check"),
+	}
+
+	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.GetBase().Ref, statusInput)
+	if err != nil {
+		panic(err)
+	}
+}
