@@ -134,21 +134,20 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 	}
 }
 
-func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string) {
+func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string, conclusion string, details string) {
 
 	// Crée une check run in progress
-	opt := github.UpdateCheckRunOptions{
-		Name:       "My check",
-		HeadSHA:    github.String("33447fd6842597b6d596361fd143805698db6019"),
-		Conclusion: github.String("success"),
+	opt := github.CreateCheckRunOptions{
+		Name:       "Comments checkboxes",
+		HeadSHA:    sha,
+		Conclusion: github.String(conclusion),
 		Output: &github.CheckRunOutput{
-			Title:   github.String("Check in progress"),
-			Text:    github.String("Some additional details about the check"),
-			Summary: github.String("The check is in progress..."),
+			Title: github.String("Ensure that all checkboxes in comment are checked"),
+			Text:  github.String(details),
 		},
 	}
 
-	checkRun, response, err := client.Checks.UpdateCheckRun(ctx, owner, repo, 13436727287, opt)
+	checkRun, response, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
 	if err != nil {
 		fmt.Println("Error creating check run:", err)
 		os.Exit(1)
@@ -158,15 +157,13 @@ func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, rep
 	fmt.Println(checkRun)
 	fmt.Print("\n\n")
 
-	result, resp, err := client.Checks.ListCheckSuitesForRef(ctx, owner, repo, sha, nil)
+}
 
-	fmt.Println(result)
-	fmt.Println(resp)
-	fmt.Print("\n\n")
-
+func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
 	re, resp, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
 
 	fmt.Println(re)
 	fmt.Println(resp)
 
+	return re, err
 }
