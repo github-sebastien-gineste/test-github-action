@@ -41,21 +41,9 @@ jobs:
         REPO: ${{ github.event.repository.name }}
       run: cd ./.github/actions/add-relevant-checklists && go run main.go 
 
-    - name: Ensure that all checklists are completed
-      if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.draft)}} 
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PR_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || github.event.number }}
-        OWNER: ${{ github.event.repository.owner.login }}
-        REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/actions/check-if-all-checkboxes-are-checked && go run main.go 
-
     - name: "Create a check run"
       uses: actions/github-script@v6
-      env:
-        parameter_url: '${{ github.event.workflow_run.html_url }}'
       with:
-        debug: ${{ secrets.ACTIONS_STEP_DEBUG || false }}
         script: |
           // any JavaScript code can go here, you can use Node JS APIs too.
           // Docs: https://docs.github.com/en/rest/checks/runs#create-a-check-run
@@ -67,7 +55,7 @@ jobs:
             name: "my-check-name",
             status: "completed",
             // Careful, code injection can happen.
-            conclusion: "${{ github.event.workflow_run.conclusion }}",
+            conclusion: "in progress",
             // This is safe, not string interpolation.
             details_url: process.env.parameter_url,
             output: {
@@ -76,3 +64,14 @@ jobs:
               text: "my text",
             },
           });
+
+    - name: Ensure that all checklists are completed
+      if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.draft)}} 
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || github.event.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
+      run: cd ./.github/actions/check-if-all-checkboxes-are-checked && go run main.go 
+
+   
