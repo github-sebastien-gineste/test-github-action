@@ -19,7 +19,7 @@ jobs:
     if: ${{ true }}
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the code
+    - name: Checkout the codes
       uses: actions/checkout@v3
     - name: Checkout Pull Request
       if: github.event_name == 'issue_comment'
@@ -33,7 +33,7 @@ jobs:
          cache-dependency-path: .github/actions/go.sum
 
     - name: Sync relevant checklists
-      if: github.event.action != 'edited' # Don't run on edits to the PR body
+      if: ${{!( github.event.action == 'edited' || github.event_name == 'issue_comment' )}}  # Don't run on edits to the PR body
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.number }}
@@ -45,7 +45,7 @@ jobs:
       if: github.event.pull_request.draft == false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PR_NUMBER: ${{ github.event.number }}
+        PR_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
       run: cd ./.github/actions/check-if-all-checkboxes-are-checked && go run main.go 
