@@ -126,33 +126,58 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 		Context:     github.String("Checkbox check"),
 	}
 
-	fmt.Println("Create status: ", statusInput)
-	fmt.Println("PR SHA : ", *pr.GetBase().SHA)
+	fmt.Println("Create statucs: ", statusInput)
 
-	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.GetBase().SHA, statusInput)
+	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.Head.SHA, statusInput)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string) {
+func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string, conclusion string, details string) {
+
+	suiteReq := github.CreateCheckSuiteOptions{
+		HeadSHA: sha,
+	}
+
+	// Create check suite
+	suite, _, err := client.Checks.CreateCheckSuite(ctx, owner, repo, suiteReq)
+	if err != nil {
+		fmt.Printf("Error creating check suite: %v\n", err)
+		return
+	}
+
+	fmt.Println(suite)
 
 	// Crée une check run in progress
 	opt := github.CreateCheckRunOptions{
-		Name:    "My check",
-		HeadSHA: sha,
-		Status:  github.String("in_progress"),
+		Name:       "Comments checkboxes",
+		HeadSHA:    sha,
+		Conclusion: github.String(conclusion),
 		Output: &github.CheckRunOutput{
-			Title:   github.String("Check in progress"),
-			Summary: github.String("The check is in progress..."),
+			Title:   github.String("Comments checkboxes"),
+			Summary: github.String("Ensure that all checkboxes in comment are checked"),
+			Text:    github.String(details),
 		},
 	}
 
-	checkRun, _, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
+	checkRun, response, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
 	if err != nil {
 		fmt.Println("Error creating check run:", err)
 		os.Exit(1)
 	}
 
+	fmt.Println(response)
 	fmt.Println(checkRun)
+	fmt.Print("\n\n")
+
+}
+
+func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
+	re, resp, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
+
+	fmt.Println(re)
+	fmt.Println(resp)
+
+	return re, err
 }

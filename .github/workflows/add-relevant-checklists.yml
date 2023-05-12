@@ -49,3 +49,5 @@ jobs:
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
       run: cd ./.github/actions/check-if-all-checkboxes-are-checked && go run main.go 
+
+   
