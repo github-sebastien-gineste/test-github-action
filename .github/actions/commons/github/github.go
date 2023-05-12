@@ -134,3 +134,27 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 		panic(err)
 	}
 }
+
+func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string) {
+
+	// Création du check
+	check := github.CreateCheckRunOptions{
+		Name:       "My Check",
+		HeadSHA:    sha,
+		Status:     github.String("completed"),
+		Conclusion: github.String("success"),
+		Output: &github.CheckRunOutput{
+			Title:   github.String("My Check"),
+			Summary: github.String("Check réussi !"),
+		},
+	}
+
+	// Envoi de la requête à l'API
+	result, _, err := client.Checks.CreateCheckRun(ctx, owner, repo, check)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(result)
+}
