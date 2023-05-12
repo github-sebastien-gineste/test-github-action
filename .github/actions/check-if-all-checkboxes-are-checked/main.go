@@ -55,10 +55,12 @@ func findUncheckedCheckboxesInPrBody(prBody string) []string {
 }
 
 func findUncheckedCheckboxesInComment(comments []github.IssueComment) []string {
+	uncheckedCheckboxes := []string{}
 
 	for _, comment := range comments {
 		fmt.Println("test ", *comment.Body)
+		uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInPrBody(*comment.Body)...)
 	}
 
-	return []string{}
+	return uncheckedCheckboxes
 }
