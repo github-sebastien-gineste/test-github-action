@@ -31,7 +31,7 @@ func main() {
 	fmt.Println("PR HEAD SHA : ", *prData.PR.Head.SHA)
 
 	if len(uncheckedCheckboxes) > 0 {
-		github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.GetBase().SHA)
+		github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA)
 		panic("PR body contains unchecked checklist")
 	}
 
