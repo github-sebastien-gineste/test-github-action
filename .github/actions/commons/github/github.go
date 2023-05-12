@@ -136,6 +136,19 @@ func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, r
 
 func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string, conclusion string, details string) {
 
+	suiteReq := github.CreateCheckSuiteOptions{
+		HeadSHA: sha,
+	}
+
+	// Create check suite
+	suite, _, err := client.Checks.CreateCheckSuite(ctx, owner, repo, suiteReq)
+	if err != nil {
+		fmt.Printf("Error creating check suite: %v\n", err)
+		return
+	}
+
+	fmt.Println(suite)
+
 	// Crée une check run in progress
 	opt := github.CreateCheckRunOptions{
 		Name:       "Comments checkboxes",
