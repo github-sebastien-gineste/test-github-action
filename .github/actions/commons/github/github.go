@@ -142,8 +142,9 @@ func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, rep
 		HeadSHA:    sha,
 		Conclusion: github.String(conclusion),
 		Output: &github.CheckRunOutput{
-			Title: github.String("Ensure that all checkboxes in comment are checked"),
-			Text:  github.String(details),
+			Title:   github.String("Comments checkboxes"),
+			Summary: github.String("Ensure that all checkboxes in comment are checked"),
+			Text:    github.String(details),
 		},
 	}
 
