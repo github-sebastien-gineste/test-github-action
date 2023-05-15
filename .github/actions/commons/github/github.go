@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -14,10 +15,9 @@ const GITHUB_TOKEN = "GITHUB_TOKEN"
 const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
-const EVENT_NAME = "EVENT_NAME"
 
 type GithubClient github.Client
-type IssueComment *github.IssueComment
+type IssueComment github.IssueComment
 
 type PullRequestData struct {
 	PRNumber int
@@ -111,113 +111,38 @@ func GetListPRComments(client *GithubClient, ctx context.Context, owner string, 
 	var issueComments []IssueComment
 
 	for _, comment := range comments {
-		issueComment := IssueComment(comment)
+		issueComment := IssueComment(*comment)
 		issueComments = append(issueComments, issueComment)
 	}
 
 	return issueComments, nil
 }
 
-func CreateRepoStatue(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest, status string, description string) {
-
-	// Création du statut du check
-	statusInput := &github.RepoStatus{
-		State:       github.String(status),
-		Description: github.String(description),
-		Context:     github.String("Checkbox check"),
-	}
-
-	fmt.Println("Create statucs: ", statusInput)
-
-	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, *pr.Head.SHA, statusInput)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, repo string, sha string, conclusion string, details string) {
-
-	suiteReq := github.CreateCheckSuiteOptions{
-		HeadSHA: sha,
-	}
-
-	// Create check suite
-	suite, _, err := client.Checks.CreateCheckSuite(ctx, owner, repo, suiteReq)
-	if err != nil {
-		fmt.Printf("Error creating check suite: %v\n", err)
-		return
-	}
-
-	fmt.Println(suite)
-
-	// Crée une check run in progress
-	opt := github.CreateCheckRunOptions{
-		Name:       "Comments checkboxes",
-		HeadSHA:    sha,
-		Conclusion: github.String(conclusion),
-		Output: &github.CheckRunOutput{
-			Title:   github.String("Comments checkboxes"),
-			Summary: github.String("Ensure that all checkboxes in comment are checked"),
-			Text:    github.String(details),
-		},
-	}
-
-	checkRun, response, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
-	if err != nil {
-		fmt.Println("Error creating check run :", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(response)
-	fmt.Println(checkRun)
-	fmt.Print("\n\n")
-
-}
-
-func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
-	re, resp, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
-
-	fmt.Println(re)
-	fmt.Println(resp)
-
+func getListChekRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
+	re, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
 	return re, err
 }
 
-func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, owner string, repo string, sha string) ([]int64, error) {
-
-	//opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
-	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
+func GetJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string, jobName string) (int64, error) {
+	checkRuns, err := getListChekRunsForRef(client, ctx, owner, repo, sha)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
 
 	if len(checkRuns.CheckRuns) == 0 {
-		return nil, fmt.Errorf("No check runs found for pull request  %d", prNumber)
+		return -1, errors.New("No check runs found for the pull request with the sha: " + sha)
 	}
 
-	jobIds := make([]int64, 0)
 	for _, checkRun := range checkRuns.CheckRuns {
-		if checkRun.GetName() == "checklistsManagement" {
-			jobIds = append(jobIds, checkRun.GetID())
+		if checkRun.GetName() == jobName {
+			return checkRun.GetID(), nil
 		}
 	}
 
-	if len(jobIds) == 0 {
-		return nil, fmt.Errorf("No jobs found for pull request %d", prNumber)
-	}
-
-	return jobIds, nil
+	return -1, errors.New("No jobs found for the pull request with the sha: " + sha)
 }
 
 func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
-
-	eVENT_NAME := os.Getenv(EVENT_NAME)
-
-	if eVENT_NAME == "pull_request" {
-		fmt.Println("ReRun pull_request")
-		return nil, nil
-	}
-
 	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
 
 	GithubClient := github.Client(*client)
@@ -230,15 +155,4 @@ func ReRun(client *GithubClient, ctx context.Context, owner string, repo string,
 	return GithubClient.Do(ctx, req, nil)
 }
 
-func CreateComment(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) {
-	// Create a PR comment
-	comment := &github.PullRequestComment{
-		Body: github.String("test \n- [ ] test"),
-	}
-
-	_, _, err := client.PullRequests.CreateComment(ctx, owner, repo, prNumber, comment)
-	if err != nil {
-		panic(err)
-	}
-
-}
+func String(s string) *string { return &s }
