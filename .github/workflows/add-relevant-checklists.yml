@@ -29,7 +29,7 @@ jobs:
          go-version: ${{ env.GO_VERSION }}
          cache-dependency-path: .github/actions/go.sum
 
-    - name: Sync relevant checklists 
+    - name: Sync relevant checklists  
       if: ${{!( github.event.action == 'edited' || github.event_name == 'issue_comment' )}}  # Don't run on edits to the PR body
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
