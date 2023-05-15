@@ -1,4 +1,4 @@
-name: Transmit event to another workflow
+name: ReRun checklistManagement checkRun in the pull request of the comment
 
 env: 
   GO_VERSION: "1.20"
@@ -7,8 +7,12 @@ on:
   issue_comment:
     types: [ created, edited, deleted ]
 
+concurrency:
+  group: github-rerun-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  transmit:
+  rerun-checklist-management-github-action:
     if: github.event.issue.pull_request && contains(github.event.comment.body, 'Breaking changes detected to `proto` files:') && (contains(github.event.comment.body, '[ ]') || contains(github.event.comment.body, '[x]'))
     runs-on: ubuntu-latest
     steps:
@@ -19,12 +23,10 @@ jobs:
       with:
          go-version: ${{ env.GO_VERSION }}
          cache-dependency-path: .github/actions/go.sum
-    - name: Transmit event to another workflow 
-      if: github.actor == 'github-sebastien-gineste'
+    - name: ReRun the checklistManagement checkRun in the pull request
       env:
-        TEST : "notest"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.issue.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/actions/transmit-event-to-pull-request && go run main.go 
+      run: cd ./.github/actions/rerun-checklist-management-github-action && go run main.go 

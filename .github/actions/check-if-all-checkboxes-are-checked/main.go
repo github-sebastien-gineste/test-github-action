@@ -22,32 +22,12 @@ func main() {
 
 	fmt.Println("Search for unchecked checkboxes...")
 	uncheckedCheckboxes := findUncheckedCheckboxes(prbody, comments)
-	uncheckedCheckboxesStr := strings.Join(uncheckedCheckboxes, "\n")
 
-	fmt.Println("Unchecked checkboxes : ", uncheckedCheckboxesStr)
-
-	fmt.Println("PR SHA : ", *prData.PR.Base.SHA)
-	fmt.Println("PR HEAD SHA : ", *prData.PR.Head.SHA)
-
-	Ids, err := github.GetJobIDsForPR(client, ctx, prData.PRNumber, prData.Owner, prData.Repo, *prData.PR.Head.SHA)
-	if err != nil {
-		fmt.Println(err, "Error while getting the job IDs for the PR")
-		panic(err)
+	for _, uncheckedCheckbox := range uncheckedCheckboxes {
+		fmt.Println("  " + uncheckedCheckbox)
 	}
-	fmt.Println("Job IDs : ", Ids)
-
-	id := Ids[0]
 
 	if len(uncheckedCheckboxes) > 0 {
-		//github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, "failure", uncheckedCheckboxesStr)
-		//github.UpdatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, prbody+" ")
-		fmt.Println("reRunJob ")
-		resp, err := github.ReRun(client, ctx, prData.Owner, prData.Repo, id)
-		if err != nil {
-			fmt.Println(err, "Error while re-running the job")
-			panic(err)
-		}
-		fmt.Println("reRunJob resp : ", resp)
 		panic("PR body contains unchecked checklist")
 	}
 
@@ -55,21 +35,9 @@ func main() {
 }
 
 func findUncheckedCheckboxes(prBody string, comments []github.IssueComment) []string {
-	uncheckedCheckboxes := findUncheckedCheckboxesInPrBody(prBody)
+	uncheckedCheckboxes := findUncheckedCheckboxesInText(prBody)
 	uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInComment(comments)...)
 
-	return uncheckedCheckboxes
-}
-
-func findUncheckedCheckboxesInPrBody(prBody string) []string {
-	lines := strings.Split(prBody, "\n")
-	uncheckedCheckboxes := []string{}
-
-	for _, line := range lines {
-		if strings.Contains(line, CHECKBOX) {
-			uncheckedCheckboxes = append(uncheckedCheckboxes, line)
-		}
-	}
 	return uncheckedCheckboxes
 }
 
@@ -77,8 +45,20 @@ func findUncheckedCheckboxesInComment(comments []github.IssueComment) []string {
 	uncheckedCheckboxes := []string{}
 
 	for _, comment := range comments {
-		fmt.Println("test ", *comment.Body)
-		uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInPrBody(*comment.Body)...)
+		uncheckedCheckboxes = append(uncheckedCheckboxes, findUncheckedCheckboxesInText(*comment.Body)...)
+	}
+
+	return uncheckedCheckboxes
+}
+
+func findUncheckedCheckboxesInText(body string) []string {
+	lines := strings.Split(body, "\n")
+	uncheckedCheckboxes := []string{}
+
+	for _, line := range lines {
+		if strings.Contains(line, CHECKBOX) {
+			uncheckedCheckboxes = append(uncheckedCheckboxes, line)
+		}
 	}
 
 	return uncheckedCheckboxes
