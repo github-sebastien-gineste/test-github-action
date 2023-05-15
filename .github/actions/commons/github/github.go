@@ -194,7 +194,7 @@ func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, own
 	}
 
 	if len(checkRuns.CheckRuns) == 0 {
-		return nil, fmt.Errorf("No check runs found for pull request %d", prNumber)
+		return nil, fmt.Errorf("No check runs found for pull request  %d", prNumber)
 	}
 
 	jobIds := make([]int64, 0)
