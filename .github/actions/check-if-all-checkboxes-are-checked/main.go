@@ -16,7 +16,7 @@ func main() {
 	prbody := prData.PR.GetBody()
 	comments, err := github.GetListPRComments(client, ctx, prData.Owner, prData.Repo, prData.PR)
 	if err != nil {
-		fmt.Println(err, "Error while getting the comments lists of the PR")
+		fmt.Println(err, "Error while  getting the comments lists of the PR")
 		panic(err)
 	}
 
@@ -30,7 +30,9 @@ func main() {
 	fmt.Println("PR HEAD SHA : ", *prData.PR.Head.SHA)
 
 	if len(uncheckedCheckboxes) > 0 {
-		github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, "failure", uncheckedCheckboxesStr)
+		//github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, "failure", uncheckedCheckboxesStr)
+		github.UpdatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, prbody+" ")
+		fmt.Println("update PR body")
 		panic("PR body contains unchecked checklist")
 	}
 
