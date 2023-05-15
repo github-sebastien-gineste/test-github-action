@@ -9,7 +9,7 @@ on:
 
 jobs:
   transmit:
-    if: ${{github.event.issue.pull_request}}
+    if: github.event.issue.pull_request && contains(github.event.comment.body, 'Breaking changes detected to `proto` files:') && (contains(github.event.comment.body, '[ ]') || contains(github.event.comment.body, '[x]'))
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the codeh
