@@ -31,7 +31,7 @@ func main() {
 		panic("PR body contains unchecked checklist")
 	}
 
-	fmt.Println("\nPR body does not contain unchecked checklist")
+	fmt.Println("\nPR body does not  contain unchecked checklist")
 }
 
 func findUncheckedCheckboxes(prBody string, comments []github.IssueComment) []string {
