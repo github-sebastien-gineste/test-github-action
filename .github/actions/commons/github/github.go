@@ -181,3 +181,29 @@ func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner stri
 
 	return re, err
 }
+
+func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, owner string, repo string, sha string) ([]int64, error) {
+
+	opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
+	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, opt)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checkRuns.CheckRuns) == 0 {
+		return nil, fmt.Errorf("No check runs found for pull request %d", prNumber)
+	}
+
+	jobIds := make([]int64, 0)
+	for _, checkRun := range checkRuns.CheckRuns {
+		if *checkRun.Status == "completed" {
+			jobIds = append(jobIds, checkRun.GetID())
+		}
+	}
+
+	if len(jobIds) == 0 {
+		return nil, fmt.Errorf("No jobs found for pull request %d", prNumber)
+	}
+
+	return jobIds, nil
+}
