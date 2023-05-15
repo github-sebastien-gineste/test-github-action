@@ -232,11 +232,11 @@ func ReRun(client *GithubClient, ctx context.Context, owner string, repo string,
 
 func CreateComment(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) {
 	// Create a PR comment
-	comment := &github.PullRequestComment{
+	comment := &github.IssueComment{
 		Body: github.String("test \n- [ ] test"),
 	}
 
-	_, _, err := client.PullRequests.CreateComment(ctx, owner, repo, prNumber, comment)
+	_, _, err := client.Issues.CreateComment(ctx, owner, repo, prNumber, comment)
 	if err != nil {
 		panic(err)
 	}
