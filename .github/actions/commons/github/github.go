@@ -186,8 +186,8 @@ func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, own
 
 	GetListChekRunsForRef(client, ctx, owner, repo, sha)
 
-	opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
-	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, opt)
+	//opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
+	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, own
 
 	jobIds := make([]int64, 0)
 	for _, checkRun := range checkRuns.CheckRuns {
-		if *checkRun.Status == "completed" {
+		if checkRun.GetName() != "checklistsManagement" {
 			jobIds = append(jobIds, checkRun.GetID())
 		}
 	}
