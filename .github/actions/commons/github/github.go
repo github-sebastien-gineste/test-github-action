@@ -209,3 +209,16 @@ func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, own
 
 	return jobIds, nil
 }
+
+func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
+	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
+
+	GithubClient := github.Client(*client)
+
+	req, err := GithubClient.NewRequest("POST", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return GithubClient.Do(ctx, req, nil)
+}
