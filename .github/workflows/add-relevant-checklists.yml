@@ -41,6 +41,7 @@ jobs:
     - name: Ensure that all checklists are completed
       if: ${{ !(github.event_name == 'pull_request' && github.event.pull_request.draft)}} 
       env:
+        EVENT_NAME: ${{ github.event_name }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event_name == 'issue_comment' && github.event.issue.number || github.event.number }}
         OWNER: ${{ github.event.repository.owner.login }}

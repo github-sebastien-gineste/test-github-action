@@ -14,6 +14,7 @@ const GITHUB_TOKEN = "GITHUB_TOKEN"
 const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
+const EVENT_NAME = "EVENT_NAME"
 
 type GithubClient github.Client
 type IssueComment *github.IssueComment
@@ -211,6 +212,14 @@ func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, own
 }
 
 func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
+
+	eVENT_NAME := os.Getenv(EVENT_NAME)
+
+	if eVENT_NAME == "pull_request" {
+		fmt.Println("ReRun pull_request")
+		return nil, nil
+	}
+
 	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
 
 	GithubClient := github.Client(*client)
