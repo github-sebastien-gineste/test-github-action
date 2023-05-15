@@ -164,7 +164,7 @@ func CreateCheckRun(client *GithubClient, ctx context.Context, owner string, rep
 
 	checkRun, response, err := client.Checks.CreateCheckRun(ctx, owner, repo, opt)
 	if err != nil {
-		fmt.Println("Error creating check run:", err)
+		fmt.Println("Error creating check run :", err)
 		os.Exit(1)
 	}
 
