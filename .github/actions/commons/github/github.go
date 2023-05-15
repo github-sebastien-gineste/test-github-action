@@ -14,6 +14,7 @@ const GITHUB_TOKEN = "GITHUB_TOKEN"
 const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
+const EVENT_NAME = "EVENT_NAME"
 
 type GithubClient github.Client
 type IssueComment *github.IssueComment
@@ -180,4 +181,53 @@ func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner stri
 	fmt.Println(resp)
 
 	return re, err
+}
+
+func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, owner string, repo string, sha string) ([]int64, error) {
+
+	GetListChekRunsForRef(client, ctx, owner, repo, sha)
+
+	//opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
+	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(checkRuns.CheckRuns) == 0 {
+		return nil, fmt.Errorf("No check runs found for pull request %d", prNumber)
+	}
+
+	jobIds := make([]int64, 0)
+	for _, checkRun := range checkRuns.CheckRuns {
+		if checkRun.GetName() != "checklistsManagement" {
+			jobIds = append(jobIds, checkRun.GetID())
+		}
+	}
+
+	if len(jobIds) == 0 {
+		return nil, fmt.Errorf("No jobs found for pull request %d", prNumber)
+	}
+
+	return jobIds, nil
+}
+
+func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
+
+	eVENT_NAME := os.Getenv(EVENT_NAME)
+
+	if eVENT_NAME == "pull_request" {
+		fmt.Println("ReRun pull_request")
+		return nil, nil
+	}
+
+	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
+
+	GithubClient := github.Client(*client)
+
+	req, err := GithubClient.NewRequest("POST", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return GithubClient.Do(ctx, req, nil)
 }
