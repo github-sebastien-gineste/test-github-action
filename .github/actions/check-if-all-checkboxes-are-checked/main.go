@@ -41,8 +41,13 @@ func main() {
 	if len(uncheckedCheckboxes) > 0 {
 		//github.CreateCheckRun(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, "failure", uncheckedCheckboxesStr)
 		//github.UpdatePRBody(client, ctx, prData.Owner, prData.Repo, prData.PR, prbody+" ")
-		fmt.Println("reRunJob PR body ")
-		github.ReRun(client, ctx, prData.Owner, prData.Repo, id)
+		fmt.Println("reRunJob ")
+		resp, err := github.ReRun(client, ctx, prData.Owner, prData.Repo, id)
+		if err != nil {
+			fmt.Println(err, "Error while re-running the job")
+			panic(err)
+		}
+		fmt.Println("reRunJob resp : ", resp)
 		panic("PR body contains unchecked checklist")
 	}
 
