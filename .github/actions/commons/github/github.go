@@ -184,6 +184,8 @@ func GetListChekRunsForRef(client *GithubClient, ctx context.Context, owner stri
 
 func GetJobIDsForPR(client *GithubClient, ctx context.Context, prNumber int, owner string, repo string, sha string) ([]int64, error) {
 
+	GetListChekRunsForRef(client, ctx, owner, repo, sha)
+
 	opt := &github.ListCheckRunsOptions{CheckName: github.String("checklistsManagement")}
 	checkRuns, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, opt)
 	if err != nil {
