@@ -1,15 +1,19 @@
-name: Transmit event to another workflow
+name: Add a comment
 
 env: 
   GO_VERSION: "1.20"
 
+
 on:
-  issue_comment:
-    types: [ created, edited, deleted ]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number'
+        required: true
+
 
 jobs:
   transmit:
-    if: ${{github.event.issue.pull_request}}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout the codeh
@@ -22,9 +26,9 @@ jobs:
     - name: Transmit event to another workflow 
       if: github.actor == 'github-sebastien-gineste'
       env:
-        TEST : "notest"
+        TEST : "test"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PR_NUMBER: ${{ github.event.issue.number }}
+        PR_NUMBER: ${{ github.event.inputs.pr_number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
       run: cd ./.github/actions/transmit-event-to-pull-request && go run main.go 
