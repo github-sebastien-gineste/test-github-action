@@ -23,10 +23,10 @@ jobs:
       with:
          go-version: ${{ env.GO_VERSION }}
          cache-dependency-path: .github/actions/go.sum
-    - name: ReRun the checklistManagement checkRun in the pull request
+    - name: ReRun the checklistManagement checkRun in the pull request  frefre
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.issue.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-      run: cd ./.github/actions/rerun-checklist-management-github-action && go run main.go 
+      run: cd ./.github/actions/rerun-checklist-management-github-action && go run main.go fefer
