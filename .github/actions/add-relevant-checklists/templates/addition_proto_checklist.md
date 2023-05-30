@@ -1,4 +1,4 @@
-# Checklist for a proto PR
+# Checklist for an addition proto PR
 
 - [ ] My RPC is in the right domain
 - [ ] My RPC's name respects [the naming conventions](https://github.com/ebuzzing/service-api-domains/blob/master/documentation/HowTo/HowToNameMyRpc.md)

@@ -19,6 +19,11 @@ const REPO = "REPO"
 type GithubClient github.Client
 type IssueComment github.IssueComment
 
+type CommitFiles struct {
+	Filename string
+	Status   string
+}
+
 type PullRequestData struct {
 	PRNumber int
 	Owner    string
@@ -62,11 +67,11 @@ func GetPullRequestData(client *GithubClient, ctx context.Context) PullRequestDa
 	}
 }
 
-func GetDiffFilesNames(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) ([]string, error) {
+func GetDiffCommitFiles(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) ([]CommitFiles, error) {
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}
-	var filenames []string
+	var commitFiles []CommitFiles
 
 	for {
 		files, response, err := client.PullRequests.ListFiles(ctx, owner, repo, prNumber, opt)
@@ -75,7 +80,7 @@ func GetDiffFilesNames(client *GithubClient, ctx context.Context, owner string, 
 		}
 
 		for _, file := range files {
-			filenames = append(filenames, *file.Filename)
+			commitFiles = append(commitFiles, CommitFiles{Filename: *file.Filename, Status: *file.Status})
 		}
 
 		if response.NextPage == 0 {
@@ -84,7 +89,7 @@ func GetDiffFilesNames(client *GithubClient, ctx context.Context, owner string, 
 		opt.Page = response.NextPage
 	}
 
-	return filenames, nil
+	return commitFiles, nil
 }
 
 func UpdatePRBody(client *GithubClient, ctx context.Context, owner string, repo string, pr *github.PullRequest, newbody string) error {
@@ -118,13 +123,13 @@ func GetListPRComments(client *GithubClient, ctx context.Context, owner string, 
 	return issueComments, nil
 }
 
-func getListChekRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
+func getListCheckRunsForRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string) (*github.ListCheckRunsResults, error) {
 	re, _, err := client.Checks.ListCheckRunsForRef(ctx, owner, repo, sha, nil)
 	return re, err
 }
 
 func GetJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string, jobName string) (int64, error) {
-	checkRuns, err := getListChekRunsForRef(client, ctx, owner, repo, sha)
+	checkRuns, err := getListCheckRunsForRef(client, ctx, owner, repo, sha)
 	if err != nil {
 		return -1, err
 	}
@@ -145,14 +150,14 @@ func GetJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner st
 func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
 
-	GithubClient := github.Client(*client)
+	underlyingGithubClient := github.Client(*client)
 
-	req, err := GithubClient.NewRequest("POST", u, nil)
+	req, err := underlyingGithubClient.NewRequest("POST", u, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return GithubClient.Do(ctx, req, nil)
+	return underlyingGithubClient.Do(ctx, req, nil)
 }
 
 func String(s string) *string { return &s }
