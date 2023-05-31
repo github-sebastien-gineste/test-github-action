@@ -15,9 +15,13 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 		t.Error("Error while getting the plan of the checklists :", err)
 	}
 
-	checkListsPlan, err = filterProtoChecklistPlan(checkListsPlan, updatedPRBody, true)
-	if err != nil {
-		t.Error("Error while filtering the plan of the checklists :", err)
+	for _, checkListItem := range allCheckLists {
+		if checkListItem.PlanFilter != nil {
+			checkListsPlan, err = checkListItem.PlanFilter.Filter(checkListsPlan, updatedPRBody, true)
+			if err != nil {
+				t.Error("Error while filtering the plan the checklists :", err)
+			}
+		}
 	}
 
 	updatedPRBody, err = applyCheckListsPlan(updatedPRBody, checkListsPlan, true)
@@ -43,7 +47,7 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 
 func TestAllCheckListPresence(t *testing.T) {
 	for _, checkListItem := range allCheckLists {
-		if checkListItem.Filename == "" || checkListItem.FilenameFilter == nil {
+		if checkListItem.Filename == "" || (checkListItem.FilenameFilter == nil && checkListItem.PlanFilter == nil) {
 			t.Error("Checklist item is not complete")
 		} else {
 			_, err := getFileContent(checkListItem.Filename)

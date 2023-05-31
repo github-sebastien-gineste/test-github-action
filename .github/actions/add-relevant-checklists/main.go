@@ -103,6 +103,44 @@ func isValidFileStatus(changeType string) bool {
 	return false
 }
 
+type CheckListPlanFilter interface {
+	//                      prbody, ignoreLog
+	Filter([]CheckListPlan, string, bool) ([]CheckListPlan, error)
+}
+
+type CheckListProtoPlanFilter struct{}
+
+func NewCheckListProtoPlanFilter() CheckListProtoPlanFilter {
+	return CheckListProtoPlanFilter{}
+}
+
+func (filter CheckListProtoPlanFilter) Filter(checkListsPlan []CheckListPlan, prBody string, ignoreLog bool) ([]CheckListPlan, error) {
+	creationProtoChecklisIndex := getCheckListPlanIndexIfItWillBePresentInThePR(checkListsPlan, "proto_creation_checklist.md")
+	updateProtoCheckListIndex := getCheckListPlanIndexIfItWillBePresentInThePR(checkListsPlan, "proto_update_checklist.md")
+
+	if creationProtoChecklisIndex != -1 && updateProtoCheckListIndex != -1 {
+		if !ignoreLog {
+			fmt.Println("\nproto_update_checklist.md and proto_creation_checklist.md will be both present, replacing them by a the proto_checklist.md checklist")
+			fmt.Println("\nRectification of the plan:")
+		}
+
+		removeCheckListItemByCheckListPlanIndex(checkListsPlan, creationProtoChecklisIndex)
+		printPlanLog(checkListsPlan[creationProtoChecklisIndex].Filename, true, checkListsPlan[creationProtoChecklisIndex].Present, checkListsPlan[creationProtoChecklisIndex].Action, ignoreLog)
+
+		removeCheckListItemByCheckListPlanIndex(checkListsPlan, updateProtoCheckListIndex)
+		printPlanLog(checkListsPlan[updateProtoCheckListIndex].Filename, true, checkListsPlan[updateProtoCheckListIndex].Present, checkListsPlan[updateProtoCheckListIndex].Action, ignoreLog)
+
+		newProtoCheckListPlan, err := addCheckListPlanItemWithoutFilter(prBody, ignoreLog)
+		if err != nil {
+			return []CheckListPlan{}, err
+		}
+		checkListsPlan = append(checkListsPlan, newProtoCheckListPlan)
+		printPlanLog(protoCheckListFilename, true, newProtoCheckListPlan.Present, newProtoCheckListPlan.Action, ignoreLog)
+	}
+
+	return checkListsPlan, nil
+}
+
 type CheckList struct {
 	Filename string
 	// If one filename on the PR diff return true on its Filter() function, the checklist will be included
@@ -111,6 +149,8 @@ type CheckList struct {
 	GlobalFilenameFilter FileFilter // -> Take precedence over the FilenameFilter
 	// if this filter is defined, the file is already Included by the FilenameFilter and the file status doesn't match this filter, the checklist will not be included
 	FileStatusFilter FileFilter
+	// filter the plan of the checklist before applying it
+	PlanFilter CheckListPlanFilter
 }
 
 type CheckListPlan struct {
@@ -140,6 +180,9 @@ const protoCheckListFilename = "proto_checklist.md"
 
 var allCheckLists = []CheckList{
 	{
+		Filename:   "proto_checklist.md",
+		PlanFilter: NewCheckListProtoPlanFilter(),
+	}, {
 		Filename:         "proto_creation_checklist.md",
 		FilenameFilter:   NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
 		FileStatusFilter: NewFileStatusMatchesFilter("added"),
@@ -205,10 +248,14 @@ func syncCheckLists(client *github.GithubClient, ctx context.Context, prData git
 		return "", err
 	}
 
-	checkListsPlan, err = filterProtoChecklistPlan(checkListsPlan, currentPRBody, false)
-	if err != nil {
-		fmt.Println(err, "Error while filtering the plan of the checklists")
-		return "", err
+	for _, checkListItem := range allCheckLists {
+		if checkListItem.PlanFilter != nil {
+			checkListsPlan, err = checkListItem.PlanFilter.Filter(checkListsPlan, currentPRBody, false)
+			if err != nil {
+				fmt.Println(err, "Error while filtering the plan of the checklist item "+checkListItem.Filename)
+				return "", err
+			}
+		}
 	}
 
 	currentPRBody, err = applyCheckListsPlan(currentPRBody, checkListsPlan, false)
@@ -280,6 +327,9 @@ func printPlanLog(CheckListFilename string, isCheckListNeeded bool, isChecklistA
 }
 
 func isCheckListNeeded(checkListItem CheckList, files []github.CommitFiles) bool {
+	if checkListItem.FilenameFilter == nil {
+		return false
+	}
 	isGlobalFilenameFilterPresent := checkListItem.GlobalFilenameFilter != nil
 	isStatusFilterPresent := checkListItem.FileStatusFilter != nil
 	isCheckListNeeded := false
@@ -299,33 +349,6 @@ func isCheckListNeeded(checkListItem CheckList, files []github.CommitFiles) bool
 		}
 	}
 	return isCheckListNeeded
-}
-
-func filterProtoChecklistPlan(checkListsPlan []CheckListPlan, prBody string, ignoreLog bool) ([]CheckListPlan, error) {
-	creationProtoChecklisIndex := getCheckListPlanIndexIfItWillBePresentInThePR(checkListsPlan, "proto_creation_checklist.md")
-	updateProtoCheckListIndex := getCheckListPlanIndexIfItWillBePresentInThePR(checkListsPlan, "proto_update_checklist.md")
-
-	if creationProtoChecklisIndex != -1 && updateProtoCheckListIndex != -1 {
-		if !ignoreLog {
-			fmt.Println("\nproto_update_checklist.md and proto_creation_checklist.md will be both present, replacing them by a the proto_checklist.md checklist")
-			fmt.Println("\nRectification of the plan:")
-		}
-
-		removeCheckListItemByCheckListPlanIndex(checkListsPlan, creationProtoChecklisIndex)
-		printPlanLog(checkListsPlan[creationProtoChecklisIndex].Filename, true, checkListsPlan[creationProtoChecklisIndex].Present, checkListsPlan[creationProtoChecklisIndex].Action, ignoreLog)
-
-		removeCheckListItemByCheckListPlanIndex(checkListsPlan, updateProtoCheckListIndex)
-		printPlanLog(checkListsPlan[updateProtoCheckListIndex].Filename, true, checkListsPlan[updateProtoCheckListIndex].Present, checkListsPlan[updateProtoCheckListIndex].Action, ignoreLog)
-
-		newProtoCheckListPlan, err := addCheckListPlanItemWithoutFilter(prBody, ignoreLog)
-		if err != nil {
-			return []CheckListPlan{}, err
-		}
-		checkListsPlan = append(checkListsPlan, newProtoCheckListPlan)
-		printPlanLog(protoCheckListFilename, true, newProtoCheckListPlan.Present, newProtoCheckListPlan.Action, ignoreLog)
-	}
-
-	return checkListsPlan, nil
 }
 
 func addCheckListPlanItemWithoutFilter(prBody string, ignoreLog bool) (CheckListPlan, error) {
