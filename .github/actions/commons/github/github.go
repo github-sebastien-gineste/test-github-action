@@ -67,7 +67,7 @@ func GetPullRequestData(client *GithubClient, ctx context.Context) PullRequestDa
 	}
 }
 
-func GetDiffCommitFiles(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) ([]CommitFiles, error) {
+func GetCommitFiles(client *GithubClient, ctx context.Context, owner string, repo string, prNumber int) ([]CommitFiles, error) {
 	opt := &github.ListOptions{
 		PerPage: 100,
 	}

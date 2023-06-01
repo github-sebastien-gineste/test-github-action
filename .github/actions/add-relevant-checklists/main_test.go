@@ -15,15 +15,6 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 		t.Error("Error while getting the plan of the checklists :", err)
 	}
 
-	for _, checkListItem := range allCheckLists {
-		if checkListItem.PlanFilter != nil {
-			checkListsPlan, err = checkListItem.PlanFilter.Filter(checkListsPlan, updatedPRBody, true)
-			if err != nil {
-				t.Error("Error while filtering the plan the checklists :", err)
-			}
-		}
-	}
-
 	updatedPRBody, err = applyCheckListsPlan(updatedPRBody, checkListsPlan, true)
 	if err != nil {
 		t.Error("Error while synchronising the checklists : ", err)
@@ -47,7 +38,7 @@ func helperManageAddCheckList(t *testing.T, prStartBody string, diffFilenames []
 
 func TestAllCheckListPresence(t *testing.T) {
 	for _, checkListItem := range allCheckLists {
-		if checkListItem.Filename == "" || (checkListItem.FilenameFilter == nil && checkListItem.PlanFilter == nil) {
+		if checkListItem.Filename == "" || checkListItem.FilenameFilter == nil {
 			t.Error("Checklist item is not complete")
 		} else {
 			_, err := getFileContent(checkListItem.Filename)
@@ -58,7 +49,7 @@ func TestAllCheckListPresence(t *testing.T) {
 	}
 }
 
-func TestExclusionFilterForApiDomainsConfWhenTheyAreSQLMigration(t *testing.T) {
+func TestSkipFilterForApiDomainsConfWhenTheyAreSQLMigration(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.sql"}, {Filename: "folder/api-domains.conf"}, {Filename: "test.txt"}}
 	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
 
@@ -70,9 +61,9 @@ func TestExclusionFilterForApiDomainsConfWhenTheyAreSQLMigration(t *testing.T) {
 	}
 }
 
-func TestExclusionWhenAFileIsBothIncludedAndExcluded(t *testing.T) {
+func TestSkipCheckListWhenAFileIsBothIncludedAndSkipped(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "_bakery/folder/test.sql"}, {Filename: "test.txt"}}
-	// the first file is both included and excluded in the "production_conf_checklist.md"
+	// the first file is both included and skipped in the "production_conf_checklist.md"
 	allCheckListFilesNameNeeded := []string{"sql_migration_checklist.md"}
 
 	prStartBody := `Start body`
@@ -83,7 +74,7 @@ func TestExclusionWhenAFileIsBothIncludedAndExcluded(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListProtoAndSql(t *testing.T) {
+func TestAddingProtoCreationAndSqlMigrationCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.sql"}, {Filename: "domains/account/account-api/src/main/protobuf/test.proto", Status: "added"}, {Filename: "test.txt"}}
 	allCheckListFilesNameNeeded := []string{"proto_creation_checklist.md", "sql_migration_checklist.md"}
 
@@ -97,7 +88,7 @@ func TestAddingCheckListProtoAndSql(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListEditionProto(t *testing.T) {
+func TestAddingProtoUpdateCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.md"}, {Filename: "domains/account/account-api/src/main/protobuf/test.proto", Status: "modified"}, {Filename: "test.txt"}}
 	allCheckListFilesNameNeeded := []string{"proto_update_checklist.md"}
 
@@ -111,7 +102,7 @@ func TestAddingCheckListEditionProto(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListEditionProtoAndImplementationRPC(t *testing.T) {
+func TestAddingProtoUpdateAndImplementationRPCCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{
 		{Filename: "queries/controllers/handlers/ListPlannedTargetingsAnonymouslyHandlerSpec.scala"},
 		{Filename: "domains/test/src/main/protobuf/queries/ListPlannedTargetingsAnonymously.proto", Status: "modified"},
@@ -128,7 +119,7 @@ func TestAddingCheckListEditionProtoAndImplementationRPC(t *testing.T) {
 	}
 }
 
-func TestAddingProtoChecklistIfTheProtoIsADomainProto(t *testing.T) {
+func TestAddingProtoCreationCheckListIfTheProtoIsADomainProto(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "domains/account/account-api/src/main/protobuf/test.proto", Status: "added"}}
 	allCheckListFilesNameNeeded := []string{"proto_creation_checklist.md"}
 
@@ -140,7 +131,7 @@ func TestAddingProtoChecklistIfTheProtoIsADomainProto(t *testing.T) {
 	}
 }
 
-func TestAddingProtoCreationChecklistIfTheProtoIsAFrameworkProtoAndTheFileStatusIsAdded(t *testing.T) {
+func TestAddingProtoCreationCheckListIfTheProtoIsAFrameworkProtoAndTheFileStatusIsAdded(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "framework/api-commons/src/main/protobuf/test.proto", Status: "added"}}
 	allCheckListFilesNameNeeded := []string{"proto_creation_checklist.md"}
 
@@ -152,11 +143,11 @@ func TestAddingProtoCreationChecklistIfTheProtoIsAFrameworkProtoAndTheFileStatus
 	}
 }
 
-func TestAddingProtoChecklistIfThereIsAProtoUpdateAndAProtoCreation(t *testing.T) {
+func TestAddingProtoCreationChecklistIfThereIsAProtoUpdateAndAProtoCreation(t *testing.T) {
 	diffFiles := []github.CommitFiles{
 		{Filename: "framework/api-commons/src/main/protobuf/test.proto", Status: "added"},
 		{Filename: "framework/api-commons/src/main/protobuf/toto.proto", Status: "modified"}}
-	allCheckListFilesNameNeeded := []string{"proto_checklist.md"}
+	allCheckListFilesNameNeeded := []string{"proto_creation_checklist.md"}
 
 	prStartBody := `Start body`
 
@@ -178,7 +169,7 @@ func TestNotAddingProtoChecklistIfTheProtoIsNotDomainOrFrameworkProto(t *testing
 	}
 }
 
-func TestAddingCheckListProductionConfWithApiDomainsConf(t *testing.T) {
+func TestAddingProductionConfCheckListWithApiDomainsConf(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.txt"}, {Filename: "api-domains.conf"}, {Filename: "text.md"}}
 	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
@@ -192,7 +183,7 @@ func TestAddingCheckListProductionConfWithApiDomainsConf(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListProductionConfWithApiDomainsMigrationsConf(t *testing.T) {
+func TestAddingProductionConfCheckListWithApiDomainsMigrationsConf(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.txt"}, {Filename: "api-domains-migrations.conf"}, {Filename: "text.md"}}
 	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
@@ -206,7 +197,7 @@ func TestAddingCheckListProductionConfWithApiDomainsMigrationsConf(t *testing.T)
 	}
 }
 
-func TestAddingCheckListProductionConfWithImplCommonsReferenceConf(t *testing.T) {
+func TestAddingProductionConfCheckListWithImplCommonsReferenceConf(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "framework/impl-commons/src/main/resources/reference.conf"}}
 	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
@@ -220,7 +211,7 @@ func TestAddingCheckListProductionConfWithImplCommonsReferenceConf(t *testing.T)
 	}
 }
 
-func TestAddingCheckListProductionConfWithDomainsReferenceConf(t *testing.T) {
+func TestAddingProductionConfCheckListWithDomainsReferenceConf(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "domains/account/account-impl/src/main/resources/reference.conf"}}
 	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
@@ -234,7 +225,7 @@ func TestAddingCheckListProductionConfWithDomainsReferenceConf(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListDevelopmentConfWithITReferenceConf(t *testing.T) {
+func TestAddingDevelopmentConfCheckListWithITReferenceConf(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "domains/account/account-impl/src/it/resources/reference.conf"}}
 	allCheckListFilesNameNeeded := []string{"development_conf_checklist.md"}
 
@@ -248,7 +239,7 @@ func TestAddingCheckListDevelopmentConfWithITReferenceConf(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListProductionConfWith_bakeryFolder(t *testing.T) {
+func TestAddingProductionConfCheckListWith_bakeryFolder(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.txt"}, {Filename: "test.go"}, {Filename: "_bakery/test/text.txt"}}
 	allCheckListFilesNameNeeded := []string{"production_conf_checklist.md"}
 
@@ -262,7 +253,7 @@ func TestAddingCheckListProductionConfWith_bakeryFolder(t *testing.T) {
 	}
 }
 
-func TestAddingCheckListConfAndImplementationRPC(t *testing.T) {
+func TestAddingConfAndImplementationRPCCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.conf"}, {Filename: "test2.txt"}, {Filename: "domains/UserHandler.scala"}}
 	allCheckListFilesNameNeeded := []string{"implementation_rpc_checklist.md", "development_conf_checklist.md"}
 
@@ -280,14 +271,14 @@ func TestRemovingProtoCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.txt"}, {Filename: "test2.txt"}, {Filename: "domains/User.scala"}}
 	allCheckListFilesNameNeeded := []string{}
 
-	protoCheckListItem := allCheckLists[0]
-	if !strings.Contains(protoCheckListItem.Filename, "proto") {
-		t.Error("Proto checklist item is not the first one, there is ", protoCheckListItem.Filename, " in its place")
+	protoCreationCheckListItem := allCheckLists[protoCreationCheckListIndex]
+	if !strings.Contains(protoCreationCheckListItem.Filename, "proto") {
+		t.Error("Proto creation checklist item is not in the index ", protoCreationCheckListIndex, ", there is ", protoCreationCheckListItem.Filename, " in its place")
 	}
 
-	contentProto, err := getFileContent(protoCheckListItem.Filename)
+	contentProto, err := getFileContent(protoCreationCheckListItem.Filename)
 	if err != nil {
-		t.Error("Checklist item file is empty for the filename :", protoCheckListItem.Filename)
+		t.Error("Checklist item file is empty for the filename :", protoCreationCheckListItem.Filename)
 	}
 
 	prStartBody := `Start body 
@@ -309,9 +300,9 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 	diffFiles := []github.CommitFiles{{Filename: "test.txt"}, {Filename: "domains/account/account-api/src/main/protobuf/test2.proto", Status: "added"}, {Filename: "domains/User.scala"}}
 	allCheckListFilesNameNeeded := []string{"proto_creation_checklist.md"}
 
-	sqlCheckListItem := allCheckLists[5]
+	sqlCheckListItem := allCheckLists[sqlMigrationCheckListIndex]
 	if !strings.Contains(sqlCheckListItem.Filename, "sql") {
-		t.Error("SQL checklist item is not in the 4th index, there is", sqlCheckListItem.Filename, "in its place")
+		t.Error("SQL checklist item is not in the ", sqlMigrationCheckListIndex, " index, there is", sqlCheckListItem.Filename, "in its place")
 	}
 
 	contentSQL, err := getFileContent(sqlCheckListItem.Filename)
@@ -328,6 +319,33 @@ func TestAddingProtoAndRemoveSQLCheckList(t *testing.T) {
 	// remove the sql checklist in the want
 	sqlTitle := strings.Split(contentSQL, "\n")[0]
 	want = removeCheckList(want, sqlTitle)
+
+	if got != want {
+		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
+	}
+}
+
+func TestEditingAProtoWhenThereIsAlreadyTheProtoCheckList(t *testing.T) {
+	diffFiles := []github.CommitFiles{
+		{Filename: "domains/account/account-api/src/main/protobuf/test1.proto", Status: "added"},
+		{Filename: "domains/account/account-api/src/main/protobuf/test2.proto", Status: "modified"}}
+	allCheckListFilesNameNeeded := []string{} // there is already the "proto_creation_checklist.md" in the PR body
+
+	protoCreationCheckListItem := allCheckLists[protoCreationCheckListIndex]
+	if !strings.Contains(protoCreationCheckListItem.Filename, "proto_creation_checklist") {
+		t.Error("Proto checklist item is not in the index (", protoCreationCheckListIndex, "), there is", protoCreationCheckListItem.Filename, "in its place")
+	}
+
+	contentProto, err := getFileContent(protoCreationCheckListItem.Filename)
+	if err != nil {
+		t.Error("Checklist item file is empty for the filename :", protoCreationCheckListItem.Filename)
+	}
+
+	prStartBody := `Start body 
+	Test test 
+	Test test` + "\n" + contentProto
+
+	got, want := helperManageAddCheckList(t, prStartBody, diffFiles, allCheckListFilesNameNeeded)
 
 	if got != want {
 		t.Errorf("got: \n\n%q \n\n want: \n\n%q \n", got, want)
