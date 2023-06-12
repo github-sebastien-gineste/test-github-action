@@ -26,7 +26,7 @@ jobs:
     - name: ReRun the check for successful deploy-pr checkRun in the pull request d
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        REF: ${{ github.ref }}
+        SHA: ${{ github.sha }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
         JOB_TO_RERUN: build
