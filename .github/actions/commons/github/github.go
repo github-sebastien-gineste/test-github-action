@@ -128,7 +128,7 @@ func getListCheckRunsForRef(client *GithubClient, ctx context.Context, owner str
 	return re, err
 }
 
-func GetJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string, jobName string) (int64, error) {
+func getJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner string, repo string, sha string, jobName string) (int64, error) {
 	checkRuns, err := getListCheckRunsForRef(client, ctx, owner, repo, sha)
 	if err != nil {
 		return -1, err
@@ -147,7 +147,7 @@ func GetJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner st
 	return -1, errors.New("No jobs found for the pull request with the sha: " + sha)
 }
 
-func ReRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
+func reRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
 
 	underlyingGithubClient := github.Client(*client)
@@ -158,6 +158,23 @@ func ReRun(client *GithubClient, ctx context.Context, owner string, repo string,
 	}
 
 	return underlyingGithubClient.Do(ctx, req, nil)
+}
+
+func ReRunJobByJobName(client *GithubClient, ctx context.Context, prData PullRequestData, jobName string) error {
+	jobId, err := getJobIDByJobNameAndRef(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, jobName)
+	if err != nil {
+		return errors.Join(err, errors.New("Error while getting the job ID for the job "+jobName+" in the PR "+strconv.Itoa(prData.PRNumber)))
+	}
+
+	fmt.Println("ReRun the Job ID ", jobId)
+
+	_, err = reRun(client, ctx, prData.Owner, prData.Repo, jobId)
+	if err != nil {
+		return errors.Join(err, errors.New("Error while re-running the job"))
+	}
+
+	fmt.Println("Job Successfully ReRun")
+	return nil
 }
 
 func String(s string) *string { return &s }

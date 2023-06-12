@@ -1,4 +1,4 @@
-name: ReRun the check for successful deploy-pr checkRun in the pull request of the comment
+name: ReRun the check for build
 
 env: 
   GO_VERSION: "1.20"
@@ -24,12 +24,11 @@ jobs:
          go-version: ${{ env.GO_VERSION }}
          cache-dependency-path: .github/actions/go.sum
 
-    - name: ReRun the check for successful deploy-pr checkRun in the pull request
+    - name: ReRun the check for build
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PR_NUMBER: ${{ github.event.issue.number }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
         JOB_TO_RERUN: build
-      run: |
-        ./.github/actions/scripts/rerun-job.sh
+      run: cd ./.github/actions/rerun-job && go run main.go
