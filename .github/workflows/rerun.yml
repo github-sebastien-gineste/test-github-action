@@ -29,6 +29,6 @@ jobs:
         REF: ${{ github.ref }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
-        JOB_TO_RERUN: deploy-pr-checks
+        JOB_TO_RERUN: build
       run: |
         ./.github/actions/scripts/rerun-job.sh
