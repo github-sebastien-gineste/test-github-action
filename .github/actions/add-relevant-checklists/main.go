@@ -25,11 +25,14 @@ type RegexFilenameFilter struct {
 }
 
 func NewFilenameMatchesFilter(accepts ...string) RegexFilenameFilter {
+	if len(accepts) == 0 {
+		accepts = []string{".*"}
+	}
 	return RegexFilenameFilter{regexp.MustCompile(strings.Join(accepts, "|")), nil}
 }
 
-func (filter RegexFilenameFilter) AddRejects(rejects ...string) RegexFilenameFilter {
-	filter.regexReject = regexp.MustCompile(strings.Join(rejects, "|"))
+func (filter RegexFilenameFilter) exclude(excludeFilenames ...string) RegexFilenameFilter {
+	filter.regexReject = regexp.MustCompile(strings.Join(excludeFilenames, "|"))
 	return filter
 }
 
@@ -48,11 +51,14 @@ type FileStatusFilter struct {
 }
 
 func NewFileStatusMatchesFilter(status ...string) FileStatusFilter {
+	if len(status) == 0 {
+		status = []string{"*"}
+	}
 	return FileStatusFilter{status, nil}
 }
 
-func (filter FileStatusFilter) AddRejects(rejects ...string) FileStatusFilter {
-	filter.rejectedList = rejects
+func (filter FileStatusFilter) exclude(excludeFileStatus ...string) FileStatusFilter {
+	filter.rejectedList = excludeFileStatus
 	return filter
 }
 
@@ -100,10 +106,10 @@ func isValidFileStatus(changeType string) bool {
 type CheckList struct {
 	Filename string
 	// If one filename on the PR diff return true on its Filter() function, the checklist will be included
-	InclusionFilter FileFilter
+	FilenameFilter FileFilter
 	// if one filename on the PR diff return true on its Filter() function, the checklist will not be included
-	ExclusionFilter FileFilter // -> Take precedence over the inclusion filter
-	// if this filter is defined, the file is already Included by the InclusionFilter and the file status doesn't match this filter, the checklist will not be included
+	SkipCheckListFilter FileFilter // -> Take precedence over the FilenameFilter
+	// if this filter is defined, the file is already Included by the FilenameFilter and the file status doesn't match this filter, the checklist will not be included
 	FileStatusFilter FileFilter
 }
 
@@ -111,6 +117,7 @@ type CheckListPlan struct {
 	Filename string
 	Title    string
 	Action   PlanAction
+	Present  bool
 }
 
 type StateRemoveCheckList int64
@@ -129,28 +136,37 @@ const (
 	REMOVED PlanAction = "REMOVED"
 )
 
+const (
+	protoCreationCheckListIndex     = 0
+	protoUpdateCheckListIndex       = 1
+	implementationRPCCheckListIndex = 2
+	developmentConfCheckListIndex   = 3
+	productionConfCheckListIndex    = 4
+	sqlMigrationCheckListIndex      = 5
+)
+
 var allCheckLists = []CheckList{
 	{
-		Filename:         "addition_proto_checklist.md",
-		InclusionFilter:  NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
+		Filename:         "proto_creation_checklist.md",
+		FilenameFilter:   NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
 		FileStatusFilter: NewFileStatusMatchesFilter("added"),
 	}, {
-		Filename:         "edition_proto_checklist.md",
-		InclusionFilter:  NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
-		FileStatusFilter: NewFileStatusMatchesFilter("*").AddRejects("added"),
+		Filename:         "proto_update_checklist.md",
+		FilenameFilter:   NewFilenameMatchesFilter(`^(domains|framework)\/.*\/src\/main\/protobuf\/.*\.proto$`),
+		FileStatusFilter: NewFileStatusMatchesFilter().exclude("added"),
 	}, {
-		Filename:        "implementation_rpc_checklist.md",
-		InclusionFilter: NewFilenameMatchesFilter(`Handler\.scala$`),
+		Filename:       "implementation_rpc_checklist.md",
+		FilenameFilter: NewFilenameMatchesFilter(`Handler\.scala$`),
 	}, {
-		Filename:        "development_conf_checklist.md",
-		InclusionFilter: NewFilenameMatchesFilter(`\.conf$`).AddRejects(`api-domains\.conf$`, `api-domains-migrations\.conf$`, `^(domains|framework)\/.*\/src\/main\/resources\/reference\.conf$`),
+		Filename:       "development_conf_checklist.md",
+		FilenameFilter: NewFilenameMatchesFilter(`\.conf$`).exclude(`api-domains\.conf$`, `api-domains-migrations\.conf$`, `^(domains|framework)\/.*\/src\/main\/resources\/reference\.conf$`),
 	}, {
-		Filename:        "production_conf_checklist.md",
-		InclusionFilter: NewFilenameMatchesFilter(`(.*_bakery.*)`, `api-domains\.conf$`, `api-domains-migrations\.conf$`, `^(domains|framework)\/.*\/src\/main\/resources\/reference\.conf$`),
-		ExclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
+		Filename:            "production_conf_checklist.md",
+		FilenameFilter:      NewFilenameMatchesFilter(`(.*_bakery.*)`, `api-domains\.conf$`, `api-domains-migrations\.conf$`, `^(domains|framework)\/.*\/src\/main\/resources\/reference\.conf$`),
+		SkipCheckListFilter: NewFilenameMatchesFilter(`\.sql$`),
 	}, {
-		Filename:        "sql_migration_checklist.md",
-		InclusionFilter: NewFilenameMatchesFilter(`\.sql$`),
+		Filename:       "sql_migration_checklist.md",
+		FilenameFilter: NewFilenameMatchesFilter(`\.sql$`),
 	},
 }
 
@@ -182,7 +198,7 @@ func main() {
 
 func syncCheckLists(client *github.GithubClient, ctx context.Context, prData github.PullRequestData) (string, error) {
 	currentPRBody := prData.PR.GetBody()
-	files, err := github.GetDiffCommitFiles(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
+	files, err := github.GetCommitFiles(client, ctx, prData.Owner, prData.Repo, prData.PRNumber)
 	if err != nil {
 		fmt.Println(err, "Error while retrieving the files diff of the PR")
 		return "", err
@@ -221,6 +237,20 @@ func getCheckListsPlan(currentPRBody string, files []github.CommitFiles, ignoreL
 		checkListsPlan = append(checkListsPlan, checkListItemPlan)
 	}
 
+	// -- Special case --
+	// We not want the proto update checklist to be present if the proto creation checklist is present (because its a subset)
+	if ((checkListsPlan[protoCreationCheckListIndex].Present && checkListsPlan[protoCreationCheckListIndex].Action == IGNORED) ||
+		(!checkListsPlan[protoCreationCheckListIndex].Present && checkListsPlan[protoCreationCheckListIndex].Action == ADDED)) &&
+		((checkListsPlan[protoUpdateCheckListIndex].Present && checkListsPlan[protoUpdateCheckListIndex].Action == IGNORED) ||
+			(!checkListsPlan[protoUpdateCheckListIndex].Present && checkListsPlan[protoUpdateCheckListIndex].Action == ADDED)) {
+		// The two checklist will be both present so we remove the proto update checklist
+		if checkListsPlan[protoUpdateCheckListIndex].Action == ADDED {
+			checkListsPlan[protoUpdateCheckListIndex].Action = IGNORED
+		} else {
+			checkListsPlan[protoUpdateCheckListIndex].Action = REMOVED
+		}
+	}
+
 	return checkListsPlan, nil
 }
 
@@ -231,7 +261,7 @@ func getCheckListPlan(prBody string, checkListItem CheckList, files []github.Com
 	}
 	isCheckListNeeded := isCheckListNeeded(checkListItem, files)
 	isChecklistAlreadyPresent := strings.Contains(prBody, checkListTitle)
-	checkListPlan := CheckListPlan{checkListItem.Filename, checkListTitle, IGNORED}
+	checkListPlan := CheckListPlan{checkListItem.Filename, checkListTitle, IGNORED, isChecklistAlreadyPresent}
 
 	if isChecklistAlreadyPresent && !isCheckListNeeded {
 		checkListPlan.Action = REMOVED
@@ -239,16 +269,16 @@ func getCheckListPlan(prBody string, checkListItem CheckList, files []github.Com
 		checkListPlan.Action = ADDED
 	}
 
-	printPlanLog(checkListItem, isCheckListNeeded, isChecklistAlreadyPresent, checkListPlan.Action, ignoreLog)
+	printPlanLog(checkListItem.Filename, isCheckListNeeded, isChecklistAlreadyPresent, checkListPlan.Action, ignoreLog)
 	return checkListPlan, nil
 }
 
-func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision PlanAction, ignoreLog bool) {
+func printPlanLog(CheckListFilename string, isCheckListNeeded bool, isChecklistAlreadyPresent bool, decision PlanAction, ignoreLog bool) {
 	if ignoreLog {
 		return
 	}
 
-	logText := "- Checklist " + checkListItem.Filename + " : "
+	logText := "- Checklist " + CheckListFilename + " : "
 
 	if isCheckListNeeded {
 		logText += "needed and "
@@ -265,20 +295,23 @@ func printPlanLog(checkListItem CheckList, isCheckListNeeded bool, isChecklistAl
 }
 
 func isCheckListNeeded(checkListItem CheckList, files []github.CommitFiles) bool {
-	isExclusionFilterPresent := checkListItem.ExclusionFilter != nil
+	if checkListItem.FilenameFilter == nil {
+		return false
+	}
+	isSkipCheckListFilterPresent := checkListItem.SkipCheckListFilter != nil
 	isStatusFilterPresent := checkListItem.FileStatusFilter != nil
 	isCheckListNeeded := false
 
 	for _, file := range files {
-		if isExclusionFilterPresent && checkListItem.ExclusionFilter.Filter(file.Filename) {
+		if isSkipCheckListFilterPresent && checkListItem.SkipCheckListFilter.Filter(file.Filename) {
 			isCheckListNeeded = false
 			break
-		} else if checkListItem.InclusionFilter.Filter(file.Filename) {
+		} else if checkListItem.FilenameFilter.Filter(file.Filename) {
 			if isStatusFilterPresent && !checkListItem.FileStatusFilter.Filter(file.Status) {
 				continue
 			}
 			isCheckListNeeded = true
-			if !isExclusionFilterPresent {
+			if !isSkipCheckListFilterPresent {
 				break
 			}
 		}
