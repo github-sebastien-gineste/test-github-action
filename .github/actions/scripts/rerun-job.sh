@@ -8,7 +8,9 @@ readonly listCheckRuns=$(curl -L \
 readonly jobID=$(echo "$listCheckRuns" |
     jq --arg name "$JOB_TO_RERUN" '.check_runs[] | select(.name == $name) | .id')
 
-echo "rerun jovb $jobID"
+echo "rerun job $jobID"
+echo "ref : $REF"
+echo "job to rerun : $JOB_TO_RERUN"
 
 curl -L \
   -X POST \
