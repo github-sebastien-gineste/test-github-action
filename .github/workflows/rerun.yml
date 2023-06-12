@@ -25,14 +25,14 @@ jobs:
          cache-dependency-path: .github/actions/go.sum
     
     - name: "Get the PR SHA"
-      id: last-commit
+      id: pr-sha
       run: |
         PR_SHA=$(git rev-parse HEAD)
-        echo "::set-output name=sha::$PR_SHA"
+        echo "sha=$PR_SHA" >> $GITHUB_OUTPUT
     - name: ReRun the check for successful deploy-pr checkRun in the pull request d
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SHA: ${{ steps.last-commit.outputs.sha }}
+        SHA: ${{ steps.pr-sha.outputs.sha }}
         OWNER: ${{ github.event.repository.owner.login }}
         REPO: ${{ github.event.repository.name }}
         JOB_TO_RERUN: build
