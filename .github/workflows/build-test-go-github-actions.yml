@@ -1,4 +1,4 @@
-name: Build and test Go github actionsc
+name: Build and test Go github actions
 
 env: 
   GO_VERSION: "1.20"
