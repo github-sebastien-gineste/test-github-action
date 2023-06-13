@@ -1,4 +1,4 @@
-name: ReRun the check for build
+name: ReRun the check for build 
 
 env: 
   GO_VERSION: "1.20"
