@@ -8,7 +8,7 @@ on:
     types: [ created, edited, deleted ]
 
 concurrency:
-  group: github-rerun-${{ github.ref }}
+  group: github-rerun-${{ github.event.comment.id }}
   cancel-in-progress: true
 
 jobs:
