@@ -31,3 +31,10 @@ jobs:
         REPO: ${{ github.event.repository.name }}
         JOB_TO_RERUN: checklistsManagement
       run: cd ./.github/actions/rerun-job && go run main.go
+    - name: ReRun the
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ github.event.issue.number }}
+        OWNER: ${{ github.event.repository.owner.login }}
+        REPO: ${{ github.event.repository.name }}
+      run: cd ./.github/actions/rerun-job && go run main.go
