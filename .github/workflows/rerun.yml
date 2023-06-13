@@ -8,7 +8,7 @@ on:
     types: [ created ]
 
 concurrency:
-  group: github-rerun-deploypr-${{ github.ref }}
+  group: github-rerun-deploypr-${{ github.event.comment.id }}
   cancel-in-progress: true
 
 jobs:
