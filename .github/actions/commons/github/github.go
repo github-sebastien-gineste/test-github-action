@@ -15,6 +15,7 @@ const GITHUB_TOKEN = "GITHUB_TOKEN"
 const PR_NUMBER = "PR_NUMBER"
 const OWNER = "OWNER"
 const REPO = "REPO"
+const JOB_TO_RERUN = "JOB_TO_RERUN"
 
 type GithubClient github.Client
 type IssueComment github.IssueComment
@@ -147,7 +148,7 @@ func getJobIDByJobNameAndRef(client *GithubClient, ctx context.Context, owner st
 	return -1, errors.New("No jobs found for the pull request with the sha: " + sha)
 }
 
-func reRun(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
+func reRunJobById(client *GithubClient, ctx context.Context, owner string, repo string, jobID int64) (*github.Response, error) {
 	u := fmt.Sprintf("repos/%v/%v/actions/jobs/%v/rerun", owner, repo, jobID)
 
 	underlyingGithubClient := github.Client(*client)
@@ -160,15 +161,21 @@ func reRun(client *GithubClient, ctx context.Context, owner string, repo string,
 	return underlyingGithubClient.Do(ctx, req, nil)
 }
 
-func ReRunJobByJobName(client *GithubClient, ctx context.Context, prData PullRequestData, jobName string) error {
+func ReRunJob(client *GithubClient, ctx context.Context, prData PullRequestData) error {
+	jobName := os.Getenv(JOB_TO_RERUN)
+
+	if jobName == "" {
+		return errors.New("No job name provided")
+	}
+
 	jobId, err := getJobIDByJobNameAndRef(client, ctx, prData.Owner, prData.Repo, *prData.PR.Head.SHA, jobName)
 	if err != nil {
 		return errors.Join(err, errors.New("Error while getting the job ID for the job "+jobName+" in the PR "+strconv.Itoa(prData.PRNumber)))
 	}
 
-	fmt.Println("ReRun the Job ID ", jobId)
+	fmt.Println("ReRun the Job ID ", jobId, ", in the ref : ", *prData.PR.Head.SHA)
 
-	_, err = reRun(client, ctx, prData.Owner, prData.Repo, jobId)
+	_, err = reRunJobById(client, ctx, prData.Owner, prData.Repo, jobId)
 	if err != nil {
 		return errors.Join(err, errors.New("Error while re-running the job"))
 	}
