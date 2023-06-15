@@ -1,3 +1,9 @@
+$OWNER="ebuzzing"
+$REPO="service-api-domains"
+$PR_NUMBER=8790
+$JOB_TO_RERUN=
+$GITHUB_TOKEN=
+
 SHA=$(curl -L \
     -H "Accept: application/vnd.github+json" \
     -H "Authorization: Bearer $GITHUB_TOKEN"\
