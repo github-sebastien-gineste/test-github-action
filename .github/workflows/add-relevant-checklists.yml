@@ -1,4 +1,4 @@
-name: Sync checklists & check if all checkboxes are checked 
+name: Sync checklists & check if all checkboxes are checked  xd
 
 env: 
   GO_VERSION: "1.20"
