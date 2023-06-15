@@ -1,0 +1,19 @@
+name: Listen fed
+
+on:
+  check_run:
+    types: [rerequested, completed, created]
+
+jobs:
+    listen:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout the code
+          uses: actions/checkout@v3
+        - name: here
+          env: 
+            CHECKRUNNAME: ${{ github.event.check_run.name }}
+            CECKNAME: ${{ github.event.check_run.app.name }}
+            EVENT : ${{ github.event_name }}
+          run : |
+            echo " : $CHECKRUNNAME\n $CECKNAME\n $EVENT" 
