@@ -1,4 +1,4 @@
-name: Listen fed
+name: Listen fed run
 
 on:
   check_run:
