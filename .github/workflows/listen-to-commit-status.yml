@@ -1,0 +1,17 @@
+name: Listen to check_suite event
+
+on:
+  status
+
+jobs:
+    listen:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout the code
+          uses: actions/checkout@v3
+        - name: See information about the check
+          env:
+            GITHUB_SHA: ${{ github.event.commit.sha }}
+            STATE : ${{ github.event.state }}
+          run : |
+            echo " : $GITHUB_REF\n $STATE"
