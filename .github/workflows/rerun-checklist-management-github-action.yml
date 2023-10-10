@@ -16,7 +16,7 @@ jobs:
     if: github.event.issue.pull_request && contains(github.event.comment.body, 'Breaking changes detected to `proto` files:') && (contains(github.event.comment.body, '[ ]') || contains(github.event.comment.body, '[x]'))
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout the codeh
+    - name: test change in PR
       uses: actions/checkout@v3
     - name: Setup Go
       uses: actions/setup-go@v4
