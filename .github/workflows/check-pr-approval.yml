@@ -1,0 +1,41 @@
+name: Check PR Approvals
+
+env: 
+  GO_VERSION: "1.20"
+
+on:
+  pull_request_review:
+    types: [ submitted ]
+
+concurrency:
+  group: check-pr-approvals-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-pr-approval:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Echo the PR number
+      run: |
+        echo "PR number: ${{ github.event.pull_request.number }}"    
+    - name: Echo the PR title
+      run: |
+        echo "PR title: ${{ github.event.pull_request.title }}"
+    - name: Echo the PR body
+      run: |
+        echo "PR body: ${{ github.event.pull_request.body }}"
+    - name: Echo the PR author
+      run: |
+        echo "PR author: ${{ github.event.pull_request.user.login }}"
+    - name: Echo the PR state
+      run: |
+        echo "PR state: ${{ github.event.pull_request.state }}"
+    - name: repository-owner
+      run: |
+        echo "Repository owner: ${{ github.event.repository.owner.login }}"
+    - name: repository-name
+      run: |
+        echo "Repository name: ${{ github.event.repository.name }}"
+    - name: repository-url
+      run: |
+        echo "Repository URL: ${{ github.event.repository.html_url }}"
